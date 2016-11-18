@@ -72,6 +72,7 @@ vector<string> get_cfg_resources(string map)
 			{
 				string val = trimSpaces(line.substr(line.find("globalmodellist")+strlen("globalmodellist")));
 				string global_model_list = normalize_path("models/" + map + "/" + val);
+				global_model_list.erase(std::remove(global_model_list.begin(), global_model_list.end(), '\"'), global_model_list.end());
 
 				trace_missing_file(global_model_list, cfg, true);
 				push_unique(cfg_res, global_model_list);
@@ -99,14 +100,16 @@ vector<string> get_cfg_resources(string map)
 			{
 				string val = trimSpaces(line.substr(line.find("globalsoundlist")+strlen("globalsoundlist")));
 				string global_sound_list = normalize_path("sound/" + map + "/" + val);
+				global_sound_list.erase(std::remove(global_sound_list.begin(), global_sound_list.end(), '\"'), global_sound_list.end());
 
 				trace_missing_file(global_sound_list, cfg, true);
 				push_unique(cfg_res, global_sound_list);
 				vector<string> replace_res = get_replacement_file_resources(global_sound_list);
 				for (int k = 0; k < replace_res.size(); k++)
 				{
-					trace_missing_file(replace_res[k], cfg + " --> " + global_sound_list, true);
-					push_unique(cfg_res, "sound/" + replace_res[k]);
+					string snd = "sound/" + replace_res[k];
+					trace_missing_file(snd, cfg + " --> " + global_sound_list, true);
+					push_unique(cfg_res, snd);
 				}
 			}
 
@@ -114,6 +117,7 @@ vector<string> get_cfg_resources(string map)
 			{
 				string val = trimSpaces(line.substr(line.find("sentence_file")+strlen("sentence_file")));
 				string sentences_file = normalize_path(val);
+				sentences_file.erase(std::remove(sentences_file.begin(), sentences_file.end(), '\"'), sentences_file.end());
 
 				trace_missing_file(sentences_file, cfg, true);
 				push_unique(cfg_res, sentences_file);
@@ -129,6 +133,7 @@ vector<string> get_cfg_resources(string map)
 			{
 				string val = trimSpaces(line.substr(line.find("materials_file")+strlen("materials_file")));
 				string materials_file = normalize_path("sound/" + map + "/" + val);
+				materials_file.erase(std::remove(materials_file.begin(), materials_file.end(), '\"'), materials_file.end());
 				trace_missing_file(materials_file, cfg, true);
 				push_unique(cfg_res, materials_file);
 			}
@@ -137,6 +142,8 @@ vector<string> get_cfg_resources(string map)
 			{
 				string val = trimSpaces(line.substr(line.find("map_script")+strlen("map_script")));
 				string map_script = normalize_path("scripts/maps/" + val + ".as");
+				map_script.erase(std::remove(map_script.begin(), map_script.end(), '\"'), map_script.end());
+				
 				trace_missing_file(map_script, cfg, true);
 				push_unique(cfg_res, map_script);
 
@@ -214,6 +221,7 @@ bool stringCompare( const string &left, const string &right )
 
 bool write_map_resources(string map)
 {
+	cout << "Generating .res file for " << map << "\n";
 	vector<string> all_resources;
 
 	Bsp bsp(map);
@@ -281,7 +289,7 @@ bool write_map_resources(string map)
 	for (int i = 0; i < all_resources.size(); i++)
 	{
 		string file = all_resources[i];
-		if (contentExists(file))
+		if (contentExists(file) || get_ext(file) == "res")
 		{
 			if (!just_testing)
 			{
@@ -363,9 +371,48 @@ int main(int argc, char* argv[])
 	if (bidx == map.length() - 4)
 		map = map.substr(0, map.length()-4);
 
-	cout << "Generating .res file for " << map << "\n";
+	bool all_maps = map.find_first_of("*") != string::npos;
 
-	int ret = write_map_resources(map);
+	string seperator = "- - - - - - - - - - - - - - - - - - - - - - - - - - - - - -\n\n";
+
+	int ret = 0;
+	if (all_maps)
+	{
+		vector<string> files = getDirFiles("maps/", map + "*.bsp");
+		if (!files.size()) {
+			cout << "No .bsp files found in the maps folder.\n";
+			return 1;
+		}
+
+		cout << "Generating .res files for " << files.size() << " maps...\n\n" << seperator;
+		for (int i = 190; i < files.size(); i++)
+		{
+			string f = files[i];
+			int iname = f.find_last_of("\\/");
+			if (iname != string::npos && iname < f.length()-1)
+				f = f.substr(iname+1);
+
+			bidx = toLowerCase(f).find(".bsp");
+			if (bidx == f.length() - 4)
+				f = f.substr(0, f.length()-4);
+
+			if (write_map_resources(f))
+			{
+				ret = 1;
+				system("pause");
+			}
+
+			if (i != files.size()-1)
+				cout << seperator;
+
+			
+		}
+	}
+	else
+	{
+		if (write_map_resources(map))
+			ret = 1;
+	}
 
 	system("pause");
 
