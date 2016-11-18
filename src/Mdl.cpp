@@ -103,6 +103,30 @@ vector<string> Mdl::get_resources()
 		push_unique(resources, t_path);
 	}
 
+
+	// sounds attached to events
+	for (int i = 0; i < mdlHead.numseq; i++)
+	{
+		fin.seekg(mdlHead.seqindex + i*sizeof(mstudioseqdesc_t));
+
+		mstudioseqdesc_t seq;
+		fin.read((char*)&seq, sizeof(mstudioseqdesc_t));
+	
+		for (int k = 0; k < seq.numevents; k++)
+		{
+			fin.seekg(seq.eventindex + k*sizeof(mstudioevent_t));
+			mstudioevent_t evt;
+
+			fin.read((char*)&evt, sizeof(mstudioevent_t));
+			if (evt.event == 1004 || evt.event == 1008 || evt.event == 5004)
+			{
+				string snd = normalize_path(string("sound/") + evt.options);
+				push_unique(resources, snd);
+			}
+		}
+	}
+	
+
 	fin.close();
 	
 

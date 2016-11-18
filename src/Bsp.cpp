@@ -134,7 +134,7 @@ vector<string> Bsp::get_resources()
 					string sext = get_ext(sval);
 					for (int s = 0; s < NUM_SOUND_EXTS; s++)
 					{
-						if (sext == g_sound_exts[s])
+						if (sext == g_valid_exts[s])
 						{
 							string prefix = "sound/";
 							if (key == "usesentence" || key == "unusesentence")
