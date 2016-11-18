@@ -9,6 +9,7 @@ set(SOURCE_FILES
 	src/Entity.h	src/Entity.cpp
 	src/Keyvalue.h	src/Keyvalue.cpp
 	src/util.h		src/util.cpp
+	src/studio.h
 )
 
 if(MSVC)

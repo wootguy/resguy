@@ -6,6 +6,7 @@
 #include "util.h"
 #include <fstream>
 #include <algorithm>
+#include "globals.h"
 
 using namespace std;
 
@@ -14,7 +15,8 @@ int max_reference_prints = 5;
 
 bool just_testing = false;
 bool print_all_references = false;
-bool print_skip = false;
+bool print_skip = true;
+bool quiet_mode = false;
 
 void load_default_content()
 {
@@ -271,6 +273,32 @@ bool write_map_resources(string map)
 		}
 	}
 
+	// remove all referenced files with invalid extensions
+	for (int i = 0; i < all_resources.size(); i++)
+	{
+		bool ext_ok = false;
+		for (int k = 0; k < NUM_VALID_EXTS; k++)
+		{
+			if (get_ext(all_resources[i]) == g_valid_exts[k])
+			{
+				ext_ok = true;
+				break;
+			}
+		}
+		if (!ext_ok)
+		{
+			if (print_skip)
+			{
+				if (numskips == 0)
+					cout << endl;
+				cout << "Skipping invalid content: " << all_resources[i] << "\n";
+			}
+			all_resources.erase(all_resources.begin() + i);
+			i--;
+			numskips++;
+		}
+	}
+
 	sort( all_resources.begin(), all_resources.end(), stringCompare );
 
 	// TODO: 
@@ -357,6 +385,8 @@ int main(int argc, char* argv[])
 				print_all_references = true;
 			if (arg == "-printdefault")
 				print_skip = true;
+			if (arg == "-quiet")
+				quiet_mode = true;
 		}
 	}
 	
@@ -379,6 +409,13 @@ int main(int argc, char* argv[])
 	if (all_maps)
 	{
 		vector<string> files = getDirFiles("maps/", map + "*.bsp");
+		insert_unique(getDirFiles("../svencoop_hd/maps/", map + "*.bsp"), files);
+		insert_unique(getDirFiles("../svencoop_addons/maps/", map + "*.bsp"), files);
+		insert_unique(getDirFiles("../svencoop_downloads/maps/", map + "*.bsp"), files);
+		insert_unique(getDirFiles("../svencoop/maps/", map + "*.bsp"), files);
+		insert_unique(getDirFiles("../valve/maps/", map + "*.bsp"), files);
+		sort( files.begin(), files.end(), stringCompare );
+
 		if (!files.size()) {
 			cout << "No .bsp files found in the maps folder.\n";
 			return 1;
@@ -404,8 +441,6 @@ int main(int argc, char* argv[])
 
 			if (i != files.size()-1)
 				cout << seperator;
-
-			
 		}
 	}
 	else
