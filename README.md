@@ -2,6 +2,7 @@
 Like RESGen, but accounts for all content that Sven Co-op maps can customize, as well as some linked files that the old program didn't find:
 
 - External texture models and animation models (e.g. scientistT.mdl + scientist01.mdl)
+- Sounds played in model animations (events 5004/1004/1008)
 - Sound files with the following extensions:
 	aiff, asf, asx, dls, flac, fsb, it, m3u, midi, mid, mod, 
 	mp2, pls, s3m, vag, wax, wma, xm, wav, ogg, mp3, au
@@ -39,4 +40,4 @@ For example, if you place the program in "svencoop" but the maps are in "svencoo
 
 This lists all content that is included with a fresh install of Sven Co-op. Usually maps should omit these files from their map package, but content that was once considered default may be removed from the mod in the future. Maps that relied on content that was removed will need to be repacked with an updated list.
 
-This file should be updated every time the game updates, unless no content was added/removed. Feel free to make pull requests for this.
+This file should be updated every time the game updates, unless no content was added/removed.
