@@ -56,6 +56,21 @@ vector<string> Bsp::get_resources()
 		{
 			string key = toLowerCase(it->first);
 			string val = replaceChar(it->second, '\\', '/');
+
+			// support for weapon_custom
+			vector<string> vals = splitString(val, ";");
+			if (vals.size() > 1)
+			{
+				val = val[0];
+			}
+			else
+			{
+				val.erase(std::remove(val.begin(), val.end(), ';'), val.end());
+				vals.clear();
+				vals.push_back(val);
+			}
+
+
 			int iext = val.find_last_of(".");
 			if (iext == string::npos || iext == val.length()-1)
 				continue;
@@ -76,7 +91,7 @@ vector<string> Bsp::get_resources()
 					vector<string> model_res = model.get_resources();
 					for (int k = 0; k < model_res.size(); k++)
 					{
-						trace_missing_file(model_res[k], model_path, true);
+						trace_missing_file(model_res[k], ent_trace + " --> " + model_path, true);
 						push_unique(resources, model_res[k]);
 					}
 				}
@@ -90,6 +105,12 @@ vector<string> Bsp::get_resources()
 			}
 			else if (key == "soundlist" && val.length())
 			{
+				// make sure file has an extension
+				int lastdot = val.find_last_of(".");
+				int lastslash = val.find_last_of("/");
+				if (lastdot == string::npos || (lastslash != string::npos && lastdot < lastslash))
+					continue;
+
 				string res = normalize_path("sound/" + name + "/" + val);
 				if (is_unique(resources, res))
 				{
@@ -105,16 +126,27 @@ vector<string> Bsp::get_resources()
 					}
 				}
 			}
-			else 
+			else
 			{
-				for (int s = 0; s < NUM_SOUND_EXTS; s++)
+				for (int v = 0; v < vals.size(); v++)
 				{
-					if (ext == g_sound_exts[s])
+					string sval = vals[v];
+					string sext = get_ext(sval);
+					for (int s = 0; s < NUM_SOUND_EXTS; s++)
 					{
-						string snd = normalize_path("sound/" + val);
-						trace_missing_file(snd, ent_trace, true);
-						push_unique(resources, snd);
-						break;
+						if (sext == g_sound_exts[s])
+						{
+							string prefix = "sound/";
+							if (key == "usesentence" || key == "unusesentence")
+								prefix = "";
+							if (key == "sentence" && sval[0] == '+') // honestly idk what the + is for but it looks useless
+								sval = sval.substr(1);
+
+							string snd = normalize_path(prefix + sval);
+							trace_missing_file(snd, ent_trace, true);
+							push_unique(resources, snd);
+							break;
+						}
 					}
 				}
 			}
@@ -135,7 +167,7 @@ vector<string> Bsp::get_resources()
 				wadname = wadname.substr(idir+1);
 			}
 
-			trace_missing_file(wadname, trace, true);
+			trace_missing_file(wadname, bsp_fname + " --> worldspawn wadlist", true);
 			push_unique(resources, wadname);
 		}
 
@@ -275,7 +307,7 @@ bool Bsp::load_lumps(string fname)
 		lumps[i] = new byte[header.lump[i].nLength];
 		fin.seekg(header.lump[i].nOffset);
 		if (fin.eof()) {
-			cout << "FAILED TO READ LUMP " << i << endl;
+			cout << "FAILED TO READ BSP LUMP " << i << endl;
 			valid = false;
 		}
 		else

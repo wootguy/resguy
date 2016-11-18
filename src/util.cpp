@@ -203,9 +203,10 @@ vector<string> get_script_dependencies(string fname)
 	vector<string> resources;
 
 	string folder = "scripts/maps/";
+
 	int idir = fname.find_last_of("/\\");
-	if (idir != string::npos)
-		folder = folder.substr(0, idir) + '/';
+	if (idir != string::npos && idir > folder.length())
+		folder = fname.substr(0, idir) + '/';
 
 	ifstream myfile(fname);
 	if (myfile.is_open())
@@ -223,7 +224,7 @@ vector<string> get_script_dependencies(string fname)
 			
 			if (line.find("#include") == 0) 
 			{
-				string include = folder + readQuote(line) + ".as";
+				string include = normalize_path(folder + readQuote(line) + ".as");
 				push_unique(resources, include);
 				get_script_dependencies(include);
 			}
@@ -249,7 +250,7 @@ string normalize_path(string s)
 			}
 			parts.erase(parts.begin() + i);
 			parts.erase(parts.begin() + (i-1));
-			i--;
+			i -= 2;
 		}
 	}
 	s = "";
