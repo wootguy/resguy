@@ -4,6 +4,9 @@
 #include "globals.h"
 #include "Mdl.h"
 
+const int NUM_LUMPS_TO_LOAD = 2;
+int lumps_to_load[NUM_LUMPS_TO_LOAD] = {LUMP_ENTITIES, LUMP_TEXTURES};
+
 Bsp::Bsp(std::string mapname)
 {
 	this->name = mapname;
@@ -26,7 +29,15 @@ Bsp::Bsp(std::string mapname)
 
 Bsp::~Bsp()
 {
+	if (!valid)
+		return;
+	 
+	for (int i = 0; i < NUM_LUMPS_TO_LOAD; i++)
+		delete [] lumps[lumps_to_load[i]];
+	delete [] lumps;
 
+	for (int i = 0; i < ents.size(); i++)
+		delete ents[i];
 }
 
 vector<string> Bsp::get_resources()
@@ -82,20 +93,22 @@ vector<string> Bsp::get_resources()
 			if (ext == "mdl") 
 			{
 				string model_path = normalize_path(val);
-				Mdl model = Mdl(model_path);
 
-				trace_missing_file(model_path, ent_trace, true);
-				push_unique(resources, model_path);
-				if (model.valid)
+				if (is_unique(resources, model_path))
 				{
-					vector<string> model_res = model.get_resources();
-					for (int k = 0; k < model_res.size(); k++)
+					Mdl model = Mdl(model_path);
+					trace_missing_file(model_path, ent_trace, true);
+					push_unique(resources, model_path);
+					if (model.valid)
 					{
-						trace_missing_file(model_res[k], ent_trace + " --> " + model_path, true);
-						push_unique(resources, model_res[k]);
+						vector<string> model_res = model.get_resources();
+						for (int k = 0; k < model_res.size(); k++)
+						{
+							trace_missing_file(model_res[k], ent_trace + " --> " + model_path, true);
+							push_unique(resources, model_res[k]);
+						}
 					}
 				}
-				
 			}
 			else if (ext == "spr")
 			{
@@ -155,6 +168,8 @@ vector<string> Bsp::get_resources()
 
 	if (worldSpawn) 
 	{
+		//vector<string> map_textures = get_textures();
+
 		// find wads (TODO: Only include them if the textures are actually used)
 		string wadList = worldSpawn->keyvalues["wad"];
 		string trace = bsp_fname + " --> \"Map Properties\" (worldspawn)";
@@ -287,6 +302,41 @@ vector<string> Bsp::get_resources()
 	return resources;
 }
 
+vector<string> Bsp::get_textures()
+{
+	vector<string> tex_names;
+
+	byte * textures = lumps[LUMP_TEXTURES];
+	int num_textures = ((int*)textures)[0];
+	int lump_len = header.lump[LUMP_TEXTURES].nLength;
+
+	if (num_textures > MAX_MAP_TEXTURES)
+	{
+		cout << "Map has too many textures\n";
+		return tex_names;
+	}
+
+	for (int i = 0; i < num_textures; i++)
+	{
+		int offset = ((int*)textures)[i + 1];
+		if (offset + sizeof(BSPMIPTEX) > lump_len)
+		{
+			cout << "ERROR: Invalid texture lump offset: " + offset << endl;
+			continue;
+		}
+		BSPMIPTEX * t = (BSPMIPTEX*)&textures[offset];
+		bool inWad = t->nOffsets[0] == 0;
+
+		if (inWad)
+		{
+			string name = t->szName;
+			tex_names.push_back(name);
+			//cout << "GOT WAD TEX: " << name << endl;
+		}
+	}
+
+}
+
 bool Bsp::load_lumps(string fname)
 {
 	bool valid = true;
@@ -301,18 +351,20 @@ bool Bsp::load_lumps(string fname)
 		fin.read((char*)&header.lump[i], sizeof(BSPLUMP));
 	}
 	lumps = new byte*[HEADER_LUMPS];
-
-	for (int i = 0; i < HEADER_LUMPS; i++)
+	
+	for (int i = 0; i < NUM_LUMPS_TO_LOAD; i++)
 	{
-		lumps[i] = new byte[header.lump[i].nLength];
-		fin.seekg(header.lump[i].nOffset);
+		int idx = lumps_to_load[i];
+		lumps[idx] = new byte[header.lump[idx].nLength];
+		fin.seekg(header.lump[idx].nOffset);
 		if (fin.eof()) {
-			cout << "FAILED TO READ BSP LUMP " << i << endl;
+			cout << "FAILED TO READ BSP LUMP " << idx << endl;
 			valid = false;
 		}
 		else
-			fin.read((char*)lumps[i], header.lump[i].nLength);
+			fin.read((char*)lumps[idx], header.lump[idx].nLength);
 	}	
+	
 	fin.close();
 
 	return valid;

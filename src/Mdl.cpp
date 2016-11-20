@@ -1,4 +1,5 @@
 #include "Mdl.h"
+#include <algorithm>
 
 Mdl::Mdl(string fname)
 {
@@ -104,7 +105,7 @@ vector<string> Mdl::get_resources()
 	}
 
 
-	// sounds attached to events
+	// sounds and sprites attached to events
 	for (int i = 0; i < mdlHead.numseq; i++)
 	{
 		fin.seekg(mdlHead.seqindex + i*sizeof(mstudioseqdesc_t));
@@ -118,10 +119,51 @@ vector<string> Mdl::get_resources()
 			mstudioevent_t evt;
 
 			fin.read((char*)&evt, sizeof(mstudioevent_t));
-			if (evt.event == 1004 || evt.event == 1008 || evt.event == 5004)
+			if (evt.event == 1004 || evt.event == 1008 || evt.event == 5004) // play sound
 			{
 				string snd = normalize_path(string("sound/") + evt.options);
 				push_unique(resources, snd);
+			}
+			if (evt.event == 5001 || evt.event == 5011 || evt.event == 5021 || evt.event == 5032) // muzzleflash sprite
+			{
+				string snd = normalize_path(evt.options);
+				push_unique(resources, snd);
+			}
+			if (evt.event == 5005) // custom muzzleflash
+			{
+				string muzzle_txt = normalize_path(string("events/") + evt.options);
+				push_unique(resources, muzzle_txt);
+				
+				string muzzle_txt_path = muzzle_txt;
+				if (!contentExists(muzzle_txt_path))
+					continue;
+
+				// parse muzzleflash config for sprite name
+				ifstream file(muzzle_txt_path);
+				if (file.is_open())
+				{
+					int line_num = 0;
+					while ( !file.eof() )
+					{
+						string line;
+						getline (file,line);
+						line_num++;
+
+						line = trimSpaces(line);
+						if (line.find("//") == 0 || line.length() == 0)
+							continue;
+
+						line = replaceChar(line, '\t', ' ');
+
+						if (line.find("spritename") == 0)
+						{
+							string val = trimSpaces(line.substr(line.find("spritename")+strlen("spritename")));
+							val.erase(std::remove(val.begin(), val.end(), '\"'), val.end());
+							push_unique(resources, val);
+						}
+					}
+				}
+				file.close();
 			}
 		}
 	}
