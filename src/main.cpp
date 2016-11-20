@@ -18,6 +18,18 @@ bool print_all_references = false;
 bool print_skip = true;
 bool quiet_mode = false;
 
+bool stringCompare( const string &left, const string &right )
+{
+	int sz = left.size() > right.size() ? left.size() : right.size();
+
+	for (int i = 0; i < sz; i++)
+	{
+		if (left[i] != right[i])
+			return left[i] < right[i];
+	}
+	return left.size() < right.size();
+}
+
 void load_default_content()
 {
 	ifstream myfile("default_content.txt");
@@ -39,6 +51,40 @@ void load_default_content()
 	{
 		cout << "ERROR: default_content.txt is missing! Files from the base game may be included.\n";
 	}
+}
+
+void generate_default_content_file()
+{
+	cout << "Generating default content file...";
+
+	vector<string> all_dirs = getAllSubdirs("");
+	vector<string> all_files;
+
+	for (int i = 0; i < all_dirs.size(); i++)
+	{
+		vector<string> files = getDirFiles(all_dirs[i], "*");
+		for (int k = 0; k < files.size(); k++)
+		{
+			if (files[k] == "." || files[k] == "..")
+				continue;
+
+			all_files.push_back(all_dirs[i] + files[k]);
+		}
+	}
+
+	sort( all_files.begin(), all_files.end(), stringCompare );
+
+	ofstream fout;
+	fout.open("default_content.txt", ios::out | ios::trunc);
+	for (int i = 0; i < all_files.size(); i++)
+		fout << all_files[i] << endl;
+
+	// obsolete file
+	fout << "pldecal.wad" << endl;
+
+	fout.close();
+
+	cout << "DONE\n";
 }
 
 // search for referenced files here that may include other files (replacement files, scripts)
@@ -177,14 +223,14 @@ vector<string> get_detail_resources(string map)
 
 	push_unique(resources, detail);
 
-	ifstream myfile(detail_path);
-	if (myfile.is_open())
+	ifstream file(detail_path);
+	if (file.is_open())
 	{
 		int line_num = 0;
-		while ( !myfile.eof() )
+		while ( !file.eof() )
 		{
 			string line;
-			getline (myfile,line);
+			getline (file,line);
 			line_num++;
 
 			line = trimSpaces(line);
@@ -205,20 +251,9 @@ vector<string> get_detail_resources(string map)
 			push_unique(resources, tga);
 		}
 	}
+	file.close();
 
 	return resources;
-}
-
-bool stringCompare( const string &left, const string &right )
-{
-	int sz = left.size() > right.size() ? left.size() : right.size();
-
-	for (int i = 0; i < sz; i++)
-	{
-		if (left[i] != right[i])
-			return left[i] < right[i];
-	}
-	return left.size() < right.size();
 }
 
 bool write_map_resources(string map)
@@ -269,6 +304,7 @@ bool write_map_resources(string map)
 				all_resources.erase(all_resources.begin() + i);
 				i--;
 				numskips++;
+				break;
 			}
 		}
 	}
@@ -297,6 +333,12 @@ bool write_map_resources(string map)
 			i--;
 			numskips++;
 		}
+	}
+
+	if (all_resources.size() == 1 && get_ext(all_resources[0]) == "res")
+	{
+		cout << "No .res file needed. Map uses default content only.\n";
+		return true;
 	}
 
 	sort( all_resources.begin(), all_resources.end(), stringCompare );
@@ -368,11 +410,20 @@ bool write_map_resources(string map)
 
 int main(int argc, char* argv[])
 {
-	load_default_content();
-
 	string map = "";
 	if (argc > 1)
+	{
 		map = argv[1];
+		if (map == "!gend") {
+			generate_default_content_file();
+#ifdef _DEBUG
+			system("pause");
+#endif
+			return 0;
+		}
+	}
+
+	load_default_content();
 	
 	if (argc > 2) 
 	{
@@ -422,7 +473,7 @@ int main(int argc, char* argv[])
 		}
 
 		cout << "Generating .res files for " << files.size() << " maps...\n\n" << seperator;
-		for (int i = 190; i < files.size(); i++)
+		for (int i = 0; i < files.size(); i++)
 		{
 			string f = files[i];
 			int iname = f.find_last_of("\\/");
@@ -436,7 +487,9 @@ int main(int argc, char* argv[])
 			if (write_map_resources(f))
 			{
 				ret = 1;
+#ifdef _DEBUG
 				system("pause");
+#endif
 			}
 
 			if (i != files.size()-1)
@@ -449,7 +502,9 @@ int main(int argc, char* argv[])
 			ret = 1;
 	}
 
+#ifdef _DEBUG
 	system("pause");
+#endif
 
 	return ret;
 }
