@@ -44,7 +44,7 @@ vector<string> Bsp::get_resources()
 {
 	vector<string> resources;
 
-	push_unique(resources, "maps/" + name + ".bsp");
+	push_unique(server_files, "maps/" + name + ".bsp");
 
 	string bsp_fname = name + ".bsp";
 
@@ -129,6 +129,7 @@ vector<string> Bsp::get_resources()
 				{
 					trace_missing_file(res, ent_trace, true);
 
+					server_files.push_back(res);
 					resources.push_back(res);
 					vector<string> replace_res = get_replacement_file_resources(res);
 					for (int k = 0; k < replace_res.size(); k++)
@@ -137,6 +138,45 @@ vector<string> Bsp::get_resources()
 						trace_missing_file(snd, ent_trace + " --> " + res, true);
 						push_unique(resources, snd);
 					}
+				}
+			}
+			else if (cname == "weapon_custom" && key == "sprite_directory")
+			{
+				string hud_file = "sprites/" + val + "/" + ents[i]->keyvalues["weapon_name"] + ".txt";
+				trace_missing_file(hud_file, ent_trace, true);
+				push_unique(server_files, hud_file);
+				push_unique(resources, hud_file);
+
+				string hud_path = hud_file;
+				if (contentExists(hud_path))
+				{
+					ifstream file(hud_path);
+					if (file.is_open())
+					{
+						int lineNum = 0;
+						bool in_func_body = false;
+						while ( !file.eof() )
+						{
+							string line;
+							getline (file,line);
+							lineNum++;
+
+							line = trimSpaces(line);
+							if (line.find("//") == 0)
+								continue;
+
+							line = replaceChar(line, '\t', ' ');
+							vector<string> parts = splitString(line, " ");
+
+							if (parts.size() < 3)
+								continue;
+							
+							string spr = "sprites/" + parts[2] + ".spr";
+							trace_missing_file(spr, ent_trace + " --> " + hud_file, true);
+							push_unique(resources, spr);
+						}
+					}
+					file.close();
 				}
 			}
 			else
@@ -150,9 +190,8 @@ vector<string> Bsp::get_resources()
 						if (sext == g_valid_exts[s])
 						{
 							string prefix = "sound/";
-							if (key == "usesentence" || key == "unusesentence")
-								prefix = "";
-							if (key == "sentence" && sval[0] == '+') // honestly idk what the + is for but it looks useless
+							bool isSentence = key == "usesentence" || key == "unusesentence" || key == "sentence";
+							if (isSentence && sval[0] == '+') // means string is a file path, not a sentence
 								sval = sval.substr(1);
 
 							string snd = normalize_path(prefix + sval);
@@ -168,23 +207,93 @@ vector<string> Bsp::get_resources()
 
 	if (worldSpawn) 
 	{
-		//vector<string> map_textures = get_textures();
+		vector<string> map_textures = get_textures();
 
 		// find wads (TODO: Only include them if the textures are actually used)
 		string wadList = worldSpawn->keyvalues["wad"];
 		string trace = bsp_fname + " --> \"Map Properties\" (worldspawn)";
-		vector<string> wads = splitString(wadList, ";");
-		for (int i = 0; i < wads.size(); i++)
+		vector<string> wadlist = splitString(wadList, ";");
+		vector<string> needed_wads;
+		vector<string> missing_wads;
+		for (int i = 0; i < wadlist.size(); i++)
 		{
-			string wadname = wads[i];
+			string wadname = wadlist[i];
 			int idir = wadname.find_last_of("\\/");
 			if (idir != string::npos && idir < wadname.length()-5) { // need at least 5 chars for a WAD name ("a.wad") 
 				wadname = wadname.substr(idir+1);
 			}
 
-			trace_missing_file(wadname, bsp_fname + " --> worldspawn wadlist", true);
-			push_unique(resources, wadname);
+			string wadpath = wadname;
+			vector<string>& wadTex = default_wads[toLowerCase(wadname)];
+			if (wadTex.size())
+			{
+				bool wad_is_used = false;
+				for (int k = 0; k < wadTex.size(); k++)
+				{
+					auto idx = find(map_textures.begin(), map_textures.end(), wadTex[k]);
+					if (idx != map_textures.end())
+					{
+						wad_is_used = true;
+						map_textures.erase(idx);
+					}
+				}
+				if (wad_is_used)
+					needed_wads.push_back(wadname);
+				else
+				{
+					if (unused_wads++ == 0) cout << endl;
+					cout << "Unused WAD: " << wadname << endl;
+				}
+			}
+			else if (contentExists(wadpath))
+			{
+				bool wad_is_used = false;
+				Wad wad(wadpath);
+				wad.readInfo();
+				if (wad.dirEntries)
+				{
+					for (int k = 0; k < wad.header.nDir; k++)
+					{
+						string texName = toLowerCase(wad.dirEntries[k].szName);
+						auto idx = find(map_textures.begin(), map_textures.end(), texName);
+						if (idx != map_textures.end())
+						{
+							map_textures.erase(idx);
+							wad_is_used = true;
+						}
+					}
+				}
+				if (wad_is_used)
+					needed_wads.push_back(wadname);
+				else
+				{
+					if (unused_wads++ == 0) cout << endl;
+					cout << "Unused WAD: " << wadname << endl;
+				}
+			}
+			else
+				missing_wads.push_back(wadname);
 		}
+		for (int i = 0; i < needed_wads.size(); i++)
+		{
+			trace_missing_file(needed_wads[i], bsp_fname + " --> worldspawn wadlist", true);
+			push_unique(resources, needed_wads[i]);
+		}
+		for (int i = 0; i < missing_wads.size(); i++)
+		{
+			if (map_textures.size())
+			{
+				trace_missing_file(missing_wads[i], bsp_fname + " --> worldspawn wadlist", true);
+				push_unique(resources, missing_wads[i]);
+			}
+			else // if all map textures are accounted for in the existing wads, then this missing one must not be used.
+			{
+				if (unused_wads++ == 0) cout << endl;
+				cout << "Unused WAD: " << missing_wads[i] << endl;
+			}
+		}
+		if (map_textures.size())
+			cout << "ERROR: " << map_textures.size() << " missing textures\n";
 
 		// find sky
 		string sky = worldSpawn->keyvalues["skyname"];
@@ -211,6 +320,7 @@ vector<string> Bsp::get_resources()
 			global_model_list = normalize_path("models/" + name + "/" + global_model_list);
 
 			trace_missing_file(global_model_list, trace, true);
+			push_unique(server_files, global_model_list);
 			push_unique(resources, global_model_list);
 			vector<string> replace_res = get_replacement_file_resources(global_model_list);
 			for (int k = 0; k < replace_res.size(); k++)
@@ -238,6 +348,7 @@ vector<string> Bsp::get_resources()
 			global_sound_list = normalize_path("sound/" + name + "/" + global_sound_list);
 
 			trace_missing_file(global_sound_list, trace, true);
+			push_unique(server_files, global_sound_list);
 			push_unique(resources, global_sound_list);
 			vector<string> replace_res = get_replacement_file_resources(global_sound_list);
 			for (int k = 0; k < replace_res.size(); k++)
@@ -281,6 +392,7 @@ vector<string> Bsp::get_resources()
 		if (sentences_file.length())
 		{
 			trace_missing_file(sentences_file, trace, true);
+			push_unique(server_files, sentences_file);
 			push_unique(resources, sentences_file);
 			vector<string> sounds = get_sentence_file_resources(sentences_file);
 			for (int i = 0; i < sounds.size(); i++)
@@ -295,6 +407,7 @@ vector<string> Bsp::get_resources()
 		{
 			materials_file = normalize_path("sound/" + name + "/" + materials_file);
 			trace_missing_file(materials_file, trace, true);
+			push_unique(server_files, materials_file);
 			push_unique(resources, materials_file);
 		}
 	}
@@ -330,7 +443,7 @@ vector<string> Bsp::get_textures()
 		if (inWad)
 		{
 			string name = t->szName;
-			tex_names.push_back(name);
+			tex_names.push_back(toLowerCase(name));
 			//cout << "GOT WAD TEX: " << name << endl;
 		}
 	}
@@ -412,6 +525,13 @@ void Bsp::load_ents()
 
 			ents.push_back(ent);
 			ent = NULL;
+
+			// you can end/start an ent on the same line, you know
+			if (line.find("{") != string::npos)
+			{
+				ent = new Entity();
+				lastBracket = 0;
+			}
 		}
 		else if (lastBracket == 0 && ent != NULL) // currently defining an entity
 		{

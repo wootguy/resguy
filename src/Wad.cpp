@@ -86,6 +86,7 @@ bool Wad::readInfo()
 	if (!usableTextures)
 	{
 		delete [] dirEntries;
+		dirEntries = NULL;
 		cout << filename << " contains no regular textures\n";
 		return false; // we can't use these types of textures (see fonts.wad as an example)
 	}

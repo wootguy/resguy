@@ -47,6 +47,10 @@ vector<string> Mdl::get_resources()
 
 	if (name.length() == 0)
 		return resources;
+
+	// Add player model preview
+	if (normalize_path(model_path).find("models/player/") != string::npos)
+		resources.push_back(model_path + name + ".bmp");
 	
 	ifstream fin (fname, ios::binary);
 
@@ -117,11 +121,18 @@ vector<string> Mdl::get_resources()
 		{
 			fin.seekg(seq.eventindex + k*sizeof(mstudioevent_t));
 			mstudioevent_t evt;
-
 			fin.read((char*)&evt, sizeof(mstudioevent_t));
+
+			string opt = evt.options;
+			if (get_ext(opt).length() == 0)
+				continue;
+
 			if (evt.event == 1004 || evt.event == 1008 || evt.event == 5004) // play sound
 			{
-				string snd = normalize_path(string("sound/") + evt.options);
+				string snd = evt.options;
+				if (snd[0] == '*')
+					snd = snd.substr(1); // not sure why some models do this but it looks pointless.
+				snd = normalize_path("sound/" + snd);
 				push_unique(resources, snd);
 			}
 			if (evt.event == 5001 || evt.event == 5011 || evt.event == 5021 || evt.event == 5032) // muzzleflash sprite

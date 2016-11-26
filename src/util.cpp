@@ -6,6 +6,8 @@
 #include <iostream>
 #include <algorithm>
 #include <string.h>
+#include "Mdl.h"
+#include "globals.h"
 
 #if defined(WIN32) || defined(_WIN32)
 #include <Windows.h>
@@ -131,14 +133,21 @@ vector<string> get_replacement_file_resources(string fname)
 			getline (myfile,line);
 
 			line = trimSpaces(line);
-			if (line.find("//") == 0 || line.find_first_of("\"") == string::npos)
+			if (line.find("//") == 0)
 				continue;
 
-			vector<string> quotes = splitString(line, "\"");
-			if (quotes.size() < 3)
-				continue;
+			line.erase(std::remove(line.begin(), line.end(), '\"'), line.end());
 
-			push_unique(resources, normalize_path(quotes[2]));
+			int ext1 = line.find_first_of(".");
+			if (ext1 == string::npos)
+				continue;
+			line = line.substr(ext1);
+			int ext2 = line.find_first_of(" \t");
+			if (ext2 == string::npos)
+				continue;
+			line = trimSpaces(line.substr(ext2));
+
+			push_unique(resources, normalize_path(line));
 		}
 	}
 	myfile.close();
@@ -198,6 +207,246 @@ vector<string> get_sentence_file_resources(string fname)
 	return resources;
 }
 
+vector<string> parse_script_arg(string arg, string fname, string err)
+{
+	vector<string> ret;
+
+	// parse weapon name from argument 1
+	if (arg[0] == '"')
+	{
+		// It's a string. Easy!
+		string val = readQuote(arg);
+		if (val.length())
+			ret.push_back(val);
+		return ret;
+	}
+	else if (arg.find("[") != string::npos)
+	{
+		// an index into an array
+		int open = arg.find("[");
+		int close = arg.find("]");
+		string index = trimSpaces(arg.substr(open, close));
+		if (close == open+1 || index.length() == 0)
+		{
+			cout << err << "\t Reason: array index couldn't be parsed from '" << arg << "'\n";
+			return ret;
+		}
+		
+		bool isNumber = true;
+		int idx = -1;
+		for (int i = 0; i < index.size(); i++)
+			if (!isNumeric(index[i]))
+				isNumber = false;
+		if (isNumber)
+			idx = atoi(index.c_str());
+		
+		// Parse file for array definition
+		string def = arg.substr(0, arg.find("["));
+		vector<string> arr;
+		ifstream file(fname);
+		if (file.is_open())
+		{
+			int lineNum = 0;
+			bool in_array = false;
+			while ( !file.eof() )
+			{
+				string line;
+				getline (file,line);
+				lineNum++;
+
+				line = trimSpaces(line);
+				if (line.find("//") == 0)
+					continue;
+
+				if (!in_array)
+				{
+					if (line.find(def) == string::npos)
+						continue;
+					line = line.substr(line.find(def) + def.length());
+
+					if (line.find("=") == string::npos)
+						continue;
+					line = line.substr(line.find("=") + 1);
+
+					if (line.find("{") == string::npos)
+						line = line.substr(line.find("{") + 1);
+
+					in_array = true;
+				}
+				if (in_array)
+				{
+					if (line.find("{") == string::npos)
+						line = line.substr(line.find("{") + 1);
+
+					bool hasQuote = true;
+					while(hasQuote)
+					{
+						string element = readQuote(line);
+						if (element.length())
+						{
+							line = line.substr(line.find("\"") + 1);
+							line = line.substr(line.find("\"") + 1);
+							line = line.substr(line.find(",") + 1);
+							arr.push_back(element);
+						}
+						else
+							break;
+					}
+
+					if (line.find(";") != string::npos)
+						break;
+				}
+				
+			}
+		}
+		file.close();
+
+		if (arr.size() > 0)
+		{
+			if (idx >= arr.size())
+			{
+				for (int i = 0; i < arr.size(); i++)
+					ret.push_back(arr[i]);
+				return ret;
+			}
+			else
+			{
+				ret.push_back(arr[idx]);
+				return ret;
+			}
+		}
+
+		cout << err << "\t Reason: Failed to parse array definition for '" << arg << "\n";
+	}
+	else if (arg.find("(") != string::npos && arg.find("(") != string::npos)
+	{
+		// Uh oh. It's a function
+		int open = arg.find("(");
+		int close = arg.find(")");
+		string params = trimSpaces(arg.substr(open, close));
+		if (close != open+1 && params.length())
+		{
+			cout << err << "\t Reason: function call '" << arg << "' has parameters\n";
+			return ret;
+		}
+					
+		string funcdef = "string " + arg.substr(0, arg.find("(") + 1);
+
+		// Parse file for function definition
+		// anything more complicated than { return "weapon_super"; } won't work
+		ifstream file(fname);
+		if (file.is_open())
+		{
+			int lineNum = 0;
+			bool in_func_body = false;
+			while ( !file.eof() )
+			{
+				string line;
+				getline (file,line);
+				lineNum++;
+
+				line = trimSpaces(line);
+				if (line.find("//") == 0)
+					continue;
+
+				if (line.find(funcdef) != string::npos)
+					in_func_body = true;
+
+				if (in_func_body)
+				{
+					int iret = line.find("return ");
+					if (iret != string::npos)
+					{
+						line = line.substr(iret);
+						int semi = line.find(";");
+						if (semi == string::npos)
+						{
+							cout << err << "\t Reason: Failed to parse return value for '" << arg << "' on line " << lineNum << "\n";
+							break;
+						}
+						line = trimSpaces(line.substr(0, semi));
+						if (line.find("\"") == string::npos)
+						{
+							cout << err << "\t Reason: Failed to parse return value for '" << arg << "' on line " << lineNum << "\n";
+							break;
+						}
+						file.close();
+
+						string val = readQuote(line);
+						if (val.length())
+							ret.push_back(val);
+						return ret;
+					}
+				}
+			}
+		}
+		file.close();
+		cout << err << "\t Reason: Failed to parse function definition for '" << arg << "\n";
+		return ret;
+	}
+	else // must be a variable
+	{
+		bool valid_var_name = true;
+		for (int i = 0; i < arg.length(); i++)
+		{
+			if (!isLetter(arg[i]) && !isNumeric(arg[i]) && arg[i] != '_')
+			{
+				valid_var_name = false;
+				break;
+			}
+		}
+		if (!valid_var_name)
+		{
+			cout << err << "\t Reason: argument '" << arg << "' does not appear to be a string, variable, or function\n";
+			return ret;
+		}
+
+		// Parse file for variable assignment
+		// ...hopefully it's a global assigned at the top of the file
+		ifstream file(fname);
+		if (file.is_open())
+		{
+			int lineNum = 0;
+			while ( !file.eof() )
+			{
+				string line;
+				getline (file,line);
+				lineNum++;
+
+				line = trimSpaces(line);
+				if (line.find("//") == 0)
+					continue;
+
+				if (line.find(arg) == string::npos)
+					continue;
+				line = line.substr(line.find(arg) + arg.length());
+
+				if (line.find("=") == string::npos)
+					continue;
+				line = line.substr(line.find("=") + 1);
+
+				if (line.find(";") == string::npos)
+					continue;
+				line = line.substr(0, line.find(";"));
+
+				if (line.find("\"") == string::npos)
+					continue;
+
+				file.close();
+
+				string val = readQuote(line);
+				if (val.length())
+					ret.push_back(val);
+				return ret;
+			}
+		}
+		file.close();
+		cout << err << "\t Reason: Failed to parse variable assignment for '" << arg << "\n";
+	}
+
+	return ret;
+}
+
 vector<string> get_script_dependencies(string fname)
 {
 	vector<string> resources;
@@ -208,13 +457,17 @@ vector<string> get_script_dependencies(string fname)
 	if (idir != string::npos && idir > folder.length())
 		folder = fname.substr(0, idir) + '/';
 
+	string trace = fname;
+
 	ifstream myfile(fname);
 	if (myfile.is_open())
 	{
+		int lineNum = 0;
 		while ( !myfile.eof() )
 		{
 			string line;
 			getline (myfile,line);
+			lineNum++;
 
 			line = trimSpaces(line);
 			if (line.find("//") == 0)
@@ -226,7 +479,174 @@ vector<string> get_script_dependencies(string fname)
 			{
 				string include = normalize_path(folder + readQuote(line) + ".as");
 				push_unique(resources, include);
-				get_script_dependencies(include);
+				insert_unique(get_script_dependencies(include), resources);
+			}
+
+			while (line.find("PrecacheModel(") != string::npos)
+			{
+				string err = "ERROR: Failed to parse precached model in " + fname + " (line " + to_string(lineNum) + ")\n";
+				line = line.substr(line.find("PrecacheModel(") + string("PrecacheModel(").length());
+
+				if (line.find(";") == string::npos)
+				{
+					cout << err << "\t Reason: couldn't find all arguments on this line\n";
+					continue;
+				}
+				line = line.substr(0, line.find(";"));
+				
+				if (line.find(")") == string::npos)
+				{
+					cout << err << "\t Reason: couldn't find all arguments on this line\n";
+					continue;
+				}
+				line = trimSpaces( line.substr(0, line.find(")")) );
+
+				vector<string> arg = parse_script_arg(line, fname, err);
+				for (int i = 0; i < arg.size(); i++)
+				{
+					string val = normalize_path(arg[i]);
+					string ext = get_ext(val);
+					// TODO: Search other content directories
+
+					//cout << "SCRIPT MODEL: " << val << endl;
+					if (val.length())
+					{
+						if (ext == "mdl")
+						{
+							trace_missing_file(val, trace, true);
+							push_unique(resources, val);
+
+							Mdl model = Mdl(val);
+							if (model.valid)
+							{
+								vector<string> model_res = model.get_resources();
+								for (int k = 0; k < model_res.size(); k++)
+								{
+									trace_missing_file(model_res[k], trace + " --> " + val, true);
+									push_unique(resources, model_res[k]);
+								}
+							}
+						}
+						else if (ext == "spr")
+						{
+							trace_missing_file(val, trace, true);
+							push_unique(resources, val);
+						}
+					}
+				}
+			}
+
+			while (line.find("PrecacheSound(") != string::npos)
+			{
+				string err = "ERROR: Failed to parse precached sound in " + fname + " (line " + to_string(lineNum) + ")\n";
+				line = line.substr(line.find("PrecacheSound(") + string("PrecacheSound(").length());
+
+				if (line.find(";") == string::npos)
+				{
+					cout << err << "\t Reason: couldn't find all arguments on this line\n";
+					continue;
+				}
+				line = line.substr(0, line.find(";"));
+				
+				if (line.find(")") == string::npos)
+				{
+					cout << err << "\t Reason: couldn't find all arguments on this line\n";
+					continue;
+				}
+				line = trimSpaces( line.substr(0, line.find(")")) );
+
+				vector<string> arg = parse_script_arg(line, fname, err);
+				for (int i = 0; i < arg.size(); i++)
+				{
+					string val = normalize_path("sound/" + arg[i]);
+					string ext = get_ext(val);
+
+					for (int k = 0; k < NUM_SOUND_EXTS; k++)
+					{
+						if (ext == g_valid_exts[k])
+						{
+							trace_missing_file(val, trace, true);
+							push_unique(resources, val);
+							break;
+						}
+					}
+				}
+			}
+
+			// try to parse out custom weapon sprite files
+			if (line.find("g_ItemRegistry.RegisterWeapon(") != string::npos)
+			{
+				string err = "ERROR: Failed to parse custom weapon definition in " + fname + " (line " + to_string(lineNum) + ")\n";
+				line = line.substr(line.find("g_ItemRegistry.RegisterWeapon(") + string("g_ItemRegistry.RegisterWeapon(").length());
+				int comma = line.find_first_of(",");
+				if (comma >= line.length()-1)
+				{
+					cout << err << "\t Reason: couldn't find all arguments on this line\n";
+					continue;
+				}
+				string arg1 = trimSpaces(line.substr(0, comma));
+
+				line = line.substr(comma+1);
+				int comma2 = line.find_first_of(",");
+				if (comma2 == string::npos)
+					comma2 = line.find_last_of(")"); // third arg is optional
+				if (comma2 >= line.length()-1)
+				{
+					cout << err << "\t Reason: couldn't find all arguments on this line\n";
+					continue;
+				}
+				string arg2 = trimSpaces(line.substr(0, comma2));
+
+				vector<string> ret1 = parse_script_arg(arg1, fname, err);
+				vector<string> ret2 = parse_script_arg(arg2, fname, err);
+
+				if (ret1.size() == 0 || ret2.size() == 0)
+					continue;
+
+				if (ret1.size() > 1 || ret2.size() > 1)
+				{
+					cout << err << "\t Reason: array argument(s) with variable index not handled\n";
+					continue;
+				}
+
+				arg1 = ret1[0];
+				arg2 = ret2[0];
+
+				string hud_file = "sprites/" + arg2 + "/" + arg1 + ".txt";
+				trace_missing_file(hud_file, trace, true);
+				push_unique(resources, hud_file);
+
+				string hud_path = hud_file;
+				if (contentExists(hud_path))
+				{
+					ifstream file(hud_path);
+					if (file.is_open())
+					{
+						int lineNum = 0;
+						bool in_func_body = false;
+						while ( !file.eof() )
+						{
+							string line;
+							getline (file,line);
+							lineNum++;
+
+							line = trimSpaces(line);
+							if (line.find("//") == 0)
+								continue;
+
+							line = replaceChar(line, '\t', ' ');
+							vector<string> parts = splitString(line, " ");
+
+							if (parts.size() < 3)
+								continue;
+							
+							string spr = "sprites/" + parts[2] + ".spr";
+							trace_missing_file(spr, trace + " --> " + hud_file, true);
+							push_unique(resources, spr);
+						}
+					}
+					file.close();
+				}
 			}
 		}
 	}
@@ -434,7 +854,7 @@ string get_ext(string fname)
 	int iext = fname.find_first_of(".");
 	if (iext != string::npos && iext < fname.length() - 1)
 	{
-		return fname.substr(iext+1);
+		return toLowerCase(fname.substr(iext+1));
 	}
 	return "";
 }
@@ -575,10 +995,10 @@ string readQuote(const string& str)
     }
     if (begin != -1 && end != -1)
         return getSubStr(str, begin, end);
-    else
-        cout << "readQuote: Could not find quote in '" << str << "'\n";
+   // else
+   //     cout << "readQuote: Could not find quote in '" << str << "'\n";
 
-    return 0;
+    return "";
 }
 
 /*
