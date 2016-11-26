@@ -11,12 +11,18 @@
 using namespace std;
 
 vector<string> default_content;
+str_map_vector default_wads; // texture names in the default wads
+vector<string> server_files;
+int unused_wads = 0;
 int max_reference_prints = 5;
+bool defines_custom_weapons = false;
 
 bool just_testing = false;
 bool print_all_references = false;
 bool print_skip = true;
 bool quiet_mode = false;
+bool client_files_only = true; // don't include files not needed by clients (e.g. motd, .res file, scripts)
+bool write_separate_server_files = false; // if client_files_only is on, the server files will be written to mapname.res2
 
 bool stringCompare( const string &left, const string &right )
 {
@@ -32,6 +38,8 @@ bool stringCompare( const string &left, const string &right )
 
 void load_default_content()
 {
+	bool parsingTexNames = false;
+	string wad_name;
 	ifstream myfile("default_content.txt");
 	if (myfile.is_open())
 	{
@@ -43,8 +51,29 @@ void load_default_content()
 			line = trimSpaces(line);
 			if (line.find("//") == 0 || line.length() == 0)
 				continue;
+			if (line.find("[DEFAULT FILES]") != string::npos)
+			{
+				parsingTexNames = false;
+				continue;
+			}
+			if (line.find("[DEFAULT TEXTURES]") != string::npos)
+			{
+				parsingTexNames = true;
+				continue;
+			}
 
-			default_content.push_back(toLowerCase(normalize_path(line)));
+			if (parsingTexNames)
+			{
+				if (line[0] == '[')
+				{
+					wad_name = line.substr(1);
+					wad_name = wad_name.substr(0, wad_name.find_last_of("]"));
+					continue;
+				}
+				default_wads[wad_name].push_back(toLowerCase(line));
+			}
+			else
+				default_content.push_back(toLowerCase(normalize_path(line)));
 		}
 	}
 	else
@@ -55,20 +84,27 @@ void load_default_content()
 
 void generate_default_content_file()
 {
-	cout << "Generating default content file...";
+	cout << "Generating default content file...\n";
 
 	vector<string> all_dirs = getAllSubdirs("");
 	vector<string> all_files;
+	vector<string> wad_files;
 
 	for (int i = 0; i < all_dirs.size(); i++)
 	{
-		vector<string> files = getDirFiles(all_dirs[i], "*");
+		vector<string> files = getDirFiles(all_dirs[i], "*.*");
 		for (int k = 0; k < files.size(); k++)
 		{
-			if (files[k] == "." || files[k] == "..")
+			if (files[k] == "." || files[k] == ".." || files[k].size() == 0)
+				continue;
+
+			if (files[k].find_last_of(".") == string::npos)
 				continue;
 
 			all_files.push_back(all_dirs[i] + files[k]);
+
+			if (get_ext(files[k]) == "wad")
+				wad_files.push_back(all_dirs[i] + files[k]);
 		}
 	}
 
@@ -76,15 +112,40 @@ void generate_default_content_file()
 
 	ofstream fout;
 	fout.open("default_content.txt", ios::out | ios::trunc);
+
+	fout << "[DEFAULT FILES]\n";
 	for (int i = 0; i < all_files.size(); i++)
 		fout << all_files[i] << endl;
 
 	// obsolete file
 	fout << "pldecal.wad" << endl;
 
+	// Lots of map use these but I think it was just a default value in previous versions
+	fout << "sound/sentence.txt" << endl;
+	fout << "sound/sentences.txt" << endl;
+
+	// Write default textures
+	fout << "\n\n[DEFAULT TEXTURES]\n";
+	int num_tex = 0;
+	for (int i = 0; i < wad_files.size(); i++) 
+	{
+		Wad wad(wad_files[i]);
+		wad.readInfo();
+		if (!wad.dirEntries)
+			continue;
+
+		fout << "[" << toLowerCase(wad_files[i]) << "]\n";
+		for (int k = 0; k < wad.header.nDir; k++)
+		{
+			fout << wad.dirEntries[k].szName << endl;
+			num_tex++;
+		}
+		fout << endl;
+	}
+
 	fout.close();
 
-	cout << "DONE\n";
+	cout << "Wrote " << all_files.size() << " files and " << num_tex << " textures\n";
 }
 
 // search for referenced files here that may include other files (replacement files, scripts)
@@ -92,15 +153,14 @@ vector<string> get_cfg_resources(string map)
 {
 	vector<string> cfg_res;
 
-	string cfg = "maps/" + map + ".cfg";
-	string cfg_path = cfg;
+	string cfg = map + ".cfg";
+	string cfg_path = "maps/" + cfg;
 
-	trace_missing_file(cfg, "(optional file)", false);
+	//trace_missing_file(cfg, "(optional file)", false);
+	push_unique(server_files, cfg_path);
 
 	if (!contentExists(cfg_path))
 		return cfg_res;
-
-	push_unique(cfg_res, cfg);
 
 	ifstream myfile(cfg_path);
 	if (myfile.is_open())
@@ -123,6 +183,7 @@ vector<string> get_cfg_resources(string map)
 				global_model_list.erase(std::remove(global_model_list.begin(), global_model_list.end(), '\"'), global_model_list.end());
 
 				trace_missing_file(global_model_list, cfg, true);
+				push_unique(server_files, global_model_list);
 				push_unique(cfg_res, global_model_list);
 				vector<string> replace_res = get_replacement_file_resources(global_model_list);
 				for (int k = 0; k < replace_res.size(); k++)
@@ -151,6 +212,7 @@ vector<string> get_cfg_resources(string map)
 				global_sound_list.erase(std::remove(global_sound_list.begin(), global_sound_list.end(), '\"'), global_sound_list.end());
 
 				trace_missing_file(global_sound_list, cfg, true);
+				push_unique(server_files, global_sound_list);
 				push_unique(cfg_res, global_sound_list);
 				vector<string> replace_res = get_replacement_file_resources(global_sound_list);
 				for (int k = 0; k < replace_res.size(); k++)
@@ -168,6 +230,7 @@ vector<string> get_cfg_resources(string map)
 				sentences_file.erase(std::remove(sentences_file.begin(), sentences_file.end(), '\"'), sentences_file.end());
 
 				trace_missing_file(sentences_file, cfg, true);
+				push_unique(server_files, sentences_file);
 				push_unique(cfg_res, sentences_file);
 				vector<string> sounds = get_sentence_file_resources(sentences_file);
 				for (int i = 0; i < sounds.size(); i++)
@@ -183,6 +246,7 @@ vector<string> get_cfg_resources(string map)
 				string materials_file = normalize_path("sound/" + map + "/" + val);
 				materials_file.erase(std::remove(materials_file.begin(), materials_file.end(), '\"'), materials_file.end());
 				trace_missing_file(materials_file, cfg, true);
+				push_unique(server_files, materials_file);
 				push_unique(cfg_res, materials_file);
 			}
 
@@ -193,13 +257,22 @@ vector<string> get_cfg_resources(string map)
 				map_script.erase(std::remove(map_script.begin(), map_script.end(), '\"'), map_script.end());
 				
 				trace_missing_file(map_script, cfg, true);
+				push_unique(server_files, map_script);
 				push_unique(cfg_res, map_script);
 
 				vector<string> scripts = get_script_dependencies(map_script);
 				for (int i = 0; i < scripts.size(); i++)
 				{
-					trace_missing_file(scripts[i], cfg + " --> " + map_script, true);
-					push_unique(cfg_res, scripts[i]);
+					bool isScript = get_ext(scripts[i]) == "as";
+					if (isScript) {
+						trace_missing_file(scripts[i], cfg + " --> " + map_script, true);
+						push_unique(server_files, scripts[i]);
+						push_unique(cfg_res, scripts[i]);
+					}
+					else // file is a sound/model and was traced in the dependency function
+					{
+						push_unique(cfg_res, scripts[i]);
+					}
 				}
 			}
 		}
@@ -221,7 +294,7 @@ vector<string> get_detail_resources(string map)
 	if (!contentExists(detail_path))
 		return resources;
 
-	push_unique(resources, detail);
+	push_unique(resources, detail); // required by clients
 
 	ifstream file(detail_path);
 	if (file.is_open())
@@ -264,7 +337,7 @@ bool write_map_resources(string map)
 	Bsp bsp(map);
 
 	if (!bsp.valid) {
-		cout << "ERROR: " << map << ".bsp not found\n";
+		cout << "ERROR: maps/" << map << ".bsp not found\n";
 		return false;
 	}
 
@@ -276,16 +349,76 @@ bool write_map_resources(string map)
 
 	if (contentExists("maps/" + map + "_skl.cfg"))
 	{
-		trace_missing_file("maps/" + map + "_skl.cfg", "(optional file)", false);
-		push_unique(all_resources, "maps/" + map + "_skl.cfg");
+		//trace_missing_file("maps/" + map + "_skl.cfg", "(optional file)", false);
+		//push_unique(all_resources, "maps/" + map + "_skl.cfg");
+		push_unique(server_files, "maps/" + map + "_skl.cfg");
 	}
 	if (contentExists("maps/" + map + "_motd.txt"))
 	{
 		trace_missing_file("maps/" + map + "_motd.txt", "(optional file)", false);
+		push_unique(server_files, "maps/" + map + "_motd.txt");
 		push_unique(all_resources, "maps/" + map + "_motd.txt");
+	}
+	if (contentExists("maps/" + map + ".save"))
+	{
+		trace_missing_file("maps/" + map + ".save", "(optional file)", false);
+		push_unique(server_files, "maps/" + map + ".save");
+		push_unique(all_resources, "maps/" + map + ".save");
+	}
+
+	if (defines_custom_weapons)
+	{
 	}
 
 	push_unique(all_resources, "maps/" + map + ".res");
+	push_unique(server_files, "maps/" + map + ".res");
+
+	sort( all_resources.begin(), all_resources.end(), stringCompare );
+
+	// fix bad paths (they shouldn't be legal, but they are)
+	for (int i = 0; i < all_resources.size(); i++)
+	{
+		string oldPath = all_resources[i];
+		string f = replaceChar(toLowerCase(oldPath), '\\', '/');
+
+		bool bad_path = true;
+		if (f.find("svencoop_hd/") == 0)
+			all_resources[i] = all_resources[i].substr(string("svencoop_hd/").length());
+		else if (f.find("svencoop_addon/") == 0)
+			all_resources[i] = all_resources[i].substr(string("svencoop_addon/").length());
+		else if (f.find("svencoop_downloads/") == 0)
+			all_resources[i] = all_resources[i].substr(string("svencoop_downloads/").length());
+		else if (f.find("svencoop/") == 0)
+			all_resources[i] = all_resources[i].substr(string("svencoop/").length());
+		else if (f.find("valve/") == 0)
+			all_resources[i] = all_resources[i].substr(string("valve/").length());
+		else
+			bad_path = false;
+
+		if (bad_path) 
+		{
+			cout << "'" << oldPath << "' should not be restricted to a specific content folder. Referenced in:\n";
+			if (g_tracemap_req[oldPath].size())
+			{
+				vector<string>& refs = g_tracemap_req[oldPath];
+				for (int i = 0; i < refs.size(); i++)
+				{
+					int left_to_print = refs.size() - i;
+					if (!print_all_references && i == (max_reference_prints - 1) && left_to_print > 1)
+					{
+						cout << "\t" << left_to_print << " more...\n";
+						break;
+					}
+					cout << "\t" << refs[i] << endl;
+				}
+				cout << endl;
+			}
+			else
+			{
+				cout << "(usage unknown)\n\n";
+			}
+		}
+	}
 
 	// remove all referenced files included in the base game
 	int numskips = 0;
@@ -297,9 +430,9 @@ bool write_map_resources(string map)
 			{
 				if (print_skip)
 				{
-					if (numskips == 0)
+					if (unused_wads == 0 && numskips == 0)
 						cout << endl;
-					cout << "Skipping default content: " << all_resources[i] << "\n";
+					cout << "Skip default: " << all_resources[i] << "\n";
 				}
 				all_resources.erase(all_resources.begin() + i);
 				i--;
@@ -325,9 +458,9 @@ bool write_map_resources(string map)
 		{
 			if (print_skip)
 			{
-				if (numskips == 0)
+				if (unused_wads == 0 && numskips == 0)
 					cout << endl;
-				cout << "Skipping invalid content: " << all_resources[i] << "\n";
+				cout << "Skip invalid: " << all_resources[i] << "\n";
 			}
 			all_resources.erase(all_resources.begin() + i);
 			i--;
@@ -335,63 +468,129 @@ bool write_map_resources(string map)
 		}
 	}
 
-	if (all_resources.size() == 1 && get_ext(all_resources[0]) == "res")
+	// write server files 
+	if (client_files_only && write_separate_server_files && !just_testing && server_files.size())
+	{
+		ofstream fout2;
+		fout2.open("maps/" + map + ".res2", ios::out | ios::trunc);
+		for (int i = 0; i < server_files.size(); i++)
+		{
+			string file = server_files[i];
+			if (get_ext(file) != "res")
+			{
+				if (!contentExists(file, true))
+					continue;
+				file = getFilename(file);
+				if (file.find("..") == 0) // strip "../svencoop_downloads/" or similar
+				{
+					file = file.substr(file.find_first_of("\\/")+1);
+					file = file.substr(file.find_first_of("\\/")+1);
+				}
+			}
+			fout2 << file << endl;
+		}
+		fout2.close();
+	}
+
+	if (all_resources.size() == 0 || all_resources.size() == 1 && get_ext(all_resources[0]) == "res")
 	{
 		cout << "No .res file needed. Map uses default content only.\n";
 		return true;
 	}
 
-	sort( all_resources.begin(), all_resources.end(), stringCompare );
+	// remove missing files
+	int missing = 0;
+	for (int i = 0; i < all_resources.size(); i++)
+	{
+		string file = all_resources[i];
+		if (!contentExists(file) && get_ext(file) != "res")
+		{
+			if (g_tracemap_req[file].size())
+			{
+				if (missing == 0) cout << endl;
+				vector<string>& refs = g_tracemap_req[file];
+				cout << "Missing file \"" << file << "\" referenced in:\n";
+				for (int i = 0; i < refs.size(); i++)
+				{
+					int left_to_print = refs.size() - i;
+					if (!print_all_references && i == (max_reference_prints - 1) && left_to_print > 1)
+					{
+						cout << "\t" << left_to_print << " more...\n";
+						break;
+					}
+					cout << "\t" << refs[i] << endl;
+				}
+				cout << endl;
+			}
+			else
+			{
+				if (unused_wads == 0 && numskips == 0 && missing == 0) cout << endl;
+				cout << "Missing file \"" << file << "\" (usage unknown)\n\n";
+			}
+			all_resources.erase(all_resources.begin() + i);
+			i--;
+			missing++;
+		}
+	}
+
+	// remove optional server files
+	if (client_files_only)
+	{
+		for (int i = 0; i < all_resources.size(); i++)
+		{
+			if (find(server_files.begin(), server_files.end(), all_resources[i]) != server_files.end())
+			{
+				cout << "Skip optional: " << all_resources[i] << "\n";
+				numskips++;
+				if (unused_wads == 0 && numskips == 0)
+					cout << endl;
+
+				all_resources.erase(all_resources.begin() + i);
+				i--;
+			}
+		}
+	}
+
+	if (all_resources.size() == 0 || all_resources.size() == 1 && get_ext(all_resources[0]) == "res")
+	{
+		if (missing)
+			cout << "No .res file generated. All required files are missing!\n";
+		else
+			cout << "No .res file generated. Server-related files skipped.\n";
+		return true;
+	}
 
 	// TODO: 
 	// Don't include WADs that aren't really used
 	// ignore missing files if they're only referenced in weird keyvalues that don't make sense for the entity
 	// (this can happen when you copy paste entities and change their types)
+	// ignore files in entities that are never triggered?
+	// detect file paths that are constructed at run-time? (no maps do this afaik)
 
 	ofstream fout;
 	if (!just_testing)
 		fout.open("maps/" + map + ".res", ios::out | ios::trunc);
 
-	fout << "// Created with resguy v1\n\n";
+	fout << "// Created with resguy v1\n";
+	fout << "// https://github.com/wootguy/resguy\n\n";
 
 	int numEntries = 0;
-	int missing = 0;
 	for (int i = 0; i < all_resources.size(); i++)
 	{
 		string file = all_resources[i];
-		if (contentExists(file) || get_ext(file) == "res")
+		if (!just_testing)
 		{
-			if (!just_testing)
+			contentExists(file, true);
+			file = getFilename(file);
+			if (file.find("..") == 0) // strip "../svencoop_downloads/" or similar
 			{
-				string actual_file_name = getFilename(file);
-				fout << actual_file_name << endl;
+				file = file.substr(file.find_first_of("\\/")+1);
+				file = file.substr(file.find_first_of("\\/")+1);
 			}
-			numEntries++;
+
+			fout << file << endl;
 		}
-		else if (true && g_tracemap_req[file].size())
-		{
-			if (missing == 0) cout << endl;
-			vector<string>& refs = g_tracemap_req[file];
-			cout << "Missing file \"" << file << "\" referenced in:\n";
-			for (int i = 0; i <	refs.size(); i++)
-			{
-				int left_to_print = refs.size() - i;
-				if (!print_all_references && i == (max_reference_prints-1) && left_to_print > 1)
-				{
-					cout << "\t" << left_to_print << " more...\n";
-					break;
-				}
-				cout << "\t" << refs[i] << endl;
-			}
-			cout << endl;
-			missing++;
-		}
-		else if (true)
-		{
-			if (missing == 0) cout << endl;
-			cout << "Missing file \"" << file << "\" (usage unknown)\n\n";
-			missing++;
-		}
+		numEntries++;
 	}
 
 	if (!just_testing)
@@ -405,7 +604,7 @@ bool write_map_resources(string map)
 		cout << "Test finished. " << numEntries << " files found. " << missing << " files missing. " << numskips << " files skipped.\n\n";
 	}
 
-	return missing > 0;
+	return missing == 0;
 }
 
 int main(int argc, char* argv[])
@@ -438,6 +637,10 @@ int main(int argc, char* argv[])
 				print_skip = true;
 			if (arg == "-quiet")
 				quiet_mode = true;
+			if (arg == "-extra")
+				client_files_only = false;
+			if (arg == "-extra2")
+				write_separate_server_files = true;
 		}
 	}
 	
@@ -475,6 +678,13 @@ int main(int argc, char* argv[])
 		cout << "Generating .res files for " << files.size() << " maps...\n\n" << seperator;
 		for (int i = 0; i < files.size(); i++)
 		{
+			// reset globals
+			server_files.clear();
+			unused_wads = 0;
+			g_tracemap_req.clear();
+			g_tracemap_opt.clear();
+			defines_custom_weapons = false;
+
 			string f = files[i];
 			int iname = f.find_last_of("\\/");
 			if (iname != string::npos && iname < f.length()-1)
@@ -484,7 +694,7 @@ int main(int argc, char* argv[])
 			if (bidx == f.length() - 4)
 				f = f.substr(0, f.length()-4);
 
-			if (write_map_resources(f))
+			if (!write_map_resources(f))
 			{
 				ret = 1;
 #ifdef _DEBUG
@@ -498,7 +708,7 @@ int main(int argc, char* argv[])
 	}
 	else
 	{
-		if (write_map_resources(map))
+		if (!write_map_resources(map))
 			ret = 1;
 	}
 
@@ -506,5 +716,5 @@ int main(int argc, char* argv[])
 	system("pause");
 #endif
 
-	return ret;
+	return 0;
 }
