@@ -482,95 +482,63 @@ vector<string> get_script_dependencies(string fname)
 				insert_unique(get_script_dependencies(include), resources);
 			}
 
-			while (line.find("PrecacheModel(") != string::npos)
 			{
-				string err = "ERROR: Failed to parse precached model in " + fname + " (line " + to_string(lineNum) + ")\n";
-				line = line.substr(line.find("PrecacheModel(") + string("PrecacheModel(").length());
+				string s = line;
+				while (s.length())
+				{
+					if (s.find("\"") >= s.length() - 1)
+						break;
+					s = s.substr(s.find("\"") + 1);
 
-				if (line.find(";") == string::npos)
-				{
-					cout << err << "\t Reason: couldn't find all arguments on this line\n";
-					continue;
-				}
-				line = line.substr(0, line.find(";"));
-				
-				if (line.find(")") == string::npos)
-				{
-					cout << err << "\t Reason: couldn't find all arguments on this line\n";
-					continue;
-				}
-				line = trimSpaces( line.substr(0, line.find(")")) );
+					if (s.find("\"") == string::npos)
+						break;
 
-				vector<string> arg = parse_script_arg(line, fname, err);
-				for (int i = 0; i < arg.size(); i++)
-				{
-					string val = normalize_path(arg[i]);
+					string val = s.substr(0, s.find("\""));
 					string ext = get_ext(val);
-					// TODO: Search other content directories
 
-					//cout << "SCRIPT MODEL: " << val << endl;
-					if (val.length())
+					s = s.substr(s.find("\"")+1);	
+
+					if (val.length() == ext.length() + 1)
+						continue; // probably a path constructed from vars
+
+					if (ext == "mdl")
 					{
-						if (ext == "mdl")
-						{
-							trace_missing_file(val, trace, true);
-							push_unique(resources, val);
+						val = normalize_path(val);
+						trace_missing_file(val, trace, true);
+						push_unique(resources, val);
 
-							Mdl model = Mdl(val);
-							if (model.valid)
+						Mdl model = Mdl(val);
+						if (model.valid)
+						{
+							vector<string> model_res = model.get_resources();
+							for (int k = 0; k < model_res.size(); k++)
 							{
-								vector<string> model_res = model.get_resources();
-								for (int k = 0; k < model_res.size(); k++)
-								{
-									trace_missing_file(model_res[k], trace + " --> " + val, true);
-									push_unique(resources, model_res[k]);
-								}
+								trace_missing_file(model_res[k], trace + " --> " + val, true);
+								push_unique(resources, model_res[k]);
 							}
 						}
-						else if (ext == "spr")
-						{
-							trace_missing_file(val, trace, true);
-							push_unique(resources, val);
-						}
 					}
-				}
-			}
-
-			while (line.find("PrecacheSound(") != string::npos)
-			{
-				string err = "ERROR: Failed to parse precached sound in " + fname + " (line " + to_string(lineNum) + ")\n";
-				line = line.substr(line.find("PrecacheSound(") + string("PrecacheSound(").length());
-
-				if (line.find(";") == string::npos)
-				{
-					cout << err << "\t Reason: couldn't find all arguments on this line\n";
-					continue;
-				}
-				line = line.substr(0, line.find(";"));
-				
-				if (line.find(")") == string::npos)
-				{
-					cout << err << "\t Reason: couldn't find all arguments on this line\n";
-					continue;
-				}
-				line = trimSpaces( line.substr(0, line.find(")")) );
-
-				vector<string> arg = parse_script_arg(line, fname, err);
-				for (int i = 0; i < arg.size(); i++)
-				{
-					string val = normalize_path("sound/" + arg[i]);
-					string ext = get_ext(val);
-
-					for (int k = 0; k < NUM_SOUND_EXTS; k++)
+					else if (ext == "spr")
 					{
-						if (ext == g_valid_exts[k])
+						val = normalize_path(val);
+						trace_missing_file(val, trace, true);
+						push_unique(resources, val);
+					}
+					else
+					{
+						val = normalize_path("sound/" + val);
+						for (int k = 0; k < NUM_SOUND_EXTS; k++)
 						{
-							trace_missing_file(val, trace, true);
-							push_unique(resources, val);
-							break;
+							if (ext == g_valid_exts[k])
+							{
+								trace_missing_file(val, trace, true);
+								push_unique(resources, val);
+								break;
+							}
 						}
 					}
 				}
+				
 			}
 
 			// try to parse out custom weapon sprite files
