@@ -1,20 +1,36 @@
 # resguy
-Like RESGen, but accounts for all content that Sven Co-op maps can customize, as well as some linked files that the old program didn't find:
+Resguy is similar to RESgen, but can find all content that Sven Co-op maps are allowed to customize. It can also find dependencies between files, like T models and model sounds. Here is what Resguy will write in your .res files:
 
-- External texture models and animation models (e.g. scientistT.mdl + scientist01.mdl)
-- Sounds played in model animations (events 5004/1004/1008)
-- Sound files with the following extensions:
-	aiff, asf, asx, dls, flac, fsb, it, m3u, midi, mid, mod, 
-	mp2, pls, s3m, vag, wax, wma, xm, wav, ogg, mp3, au
-- Sound replacment files and their listed content for specific monsters ("soundlist" entity key)
-- Monster/sequence sentence keys (e.g. "+barney/yessir.wav")
-- Global model/sound replacement files and their listed content (specified in the BSP or CFG)
-- Custom sentences and their listed sounds (specified in the BSP or CFG)
+- Skybox .tga files
+- Wads that are actually used
 - Detail textures file and the .tga files listed inside.
-- map_script file and all scripts it #include's
-- Player models w/ preview images specified in the "Force Player Models" map settings
-- Custom materials file
+- Models/sprites/sounds used in map entities
+- Models/sprites/sounds used in map scripts (error prone)
+- HUD files and sprites used by custom weapons defined in map scripts (even more error prone)
+- External texture models and animation models (e.g. scientistT.mdl + scientist01.mdl)
+- Custom muzzle flash configs and sprites used in model animations (event 5005)
+- Sounds played in model animations (events 5004/1004/1008)
+- Sounds used in entity sentence keys (e.g. "UseSentence" = "+barney/yessir.wav")
+- Sounds listed in per-monster sound replacment files (the "soundlist" entity key)
+- Sounds listed in custom sentence files
+- Sounds listed in Global Sound Replacement files
+- Models listed in Global Model Replacement files
+- Player models and preview images for the names listed in the "forcepmodels" setting
+
+Resguy will find and process the following files but __NOT__ include them in the .res file. The reason for this is because clients don't need them (only the server uses these files). You can include these with "-extra" if you really want to:
+
+- BSP file (client already knows about this)
 - MOTD file
+- CFG files (Note: SC doesn't even allow these to be transfered to clients)
+- Custom sentence files
+- Custom materials file
+- map_script file and all other scripts that it #includes
+- Global model/sound replacement files
+- Per-monster sound replacment files
+
+With RESgen, only .wav sounds were found in maps. Sven Co-op uses FMOD which supports a large variety of sounds. These are the types of sounds Resguy will find:
+
+- aiff, asf, asx, dls, flac, fsb, it, m3u, midi, mid, mod, mp2, pls, s3m, vag, wax, wma, xm, wav, ogg, mp3, au
 
 # Usage:
 
@@ -34,10 +50,18 @@ For example, if you place the program in "svencoop" but the maps are in "svencoo
 
 **-allrefs** = List all references for missing files (normally clipped to 5)
 
-**-printdefault** = Print all content that was skipped because it was included in default_content.txt
+**-printdefault** = Print content that was skipped because it was listed in default_content.txt
+
+**-extra** = Write server-specific files to .res
+
+**-extra2** = Write server-specific files to a separate .res2 file
 
 ## default_content.txt
 
-This lists all content that is included with a fresh install of Sven Co-op. Usually maps should omit these files from their map package, but content that was once considered default may be removed from the mod in the future. Maps that relied on content that was removed will need to be repacked with an updated list.
+This lists all content that is included with a fresh install of Sven Co-op. Usually maps should omit these files from their map package, but content that was once considered default may be removed from the game in the future. This file should be updated every time the game updates, unless no content was added/removed.
 
-This file should be updated every time the game updates, unless no content was added/removed.
+To update the default content list, place Resguy in your "/common/Sven Co-op/svencoop/" folder and run this command:
+
+resguy.exe !gend
+
+Maps should be repackaged if they rely on default content that was removed from the game.
