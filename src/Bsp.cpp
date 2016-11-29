@@ -239,7 +239,7 @@ vector<string> Bsp::get_resources()
 				}
 				if (wad_is_used)
 					needed_wads.push_back(wadname);
-				else
+				else if (print_skip)
 				{
 					if (unused_wads++ == 0) cout << endl;
 					cout << "Unused WAD: " << wadname << endl;
@@ -265,7 +265,7 @@ vector<string> Bsp::get_resources()
 				}
 				if (wad_is_used)
 					needed_wads.push_back(wadname);
-				else
+				else if (print_skip)
 				{
 					if (unused_wads++ == 0) cout << endl;
 					cout << "Unused WAD: " << wadname << endl;
@@ -286,8 +286,9 @@ vector<string> Bsp::get_resources()
 				trace_missing_file(missing_wads[i], bsp_fname + " --> worldspawn wadlist", true);
 				push_unique(resources, missing_wads[i]);
 			}
-			else // if all map textures are accounted for in the existing wads, then this missing one must not be used.
+			else if (print_skip)
 			{
+				// if all map textures are accounted for in the existing wads, then this missing one must not be used.
 				if (unused_wads++ == 0) cout << endl;
 				cout << "Unused WAD: " << missing_wads[i] << endl;
 			}

@@ -14,15 +14,15 @@ vector<string> default_content;
 str_map_vector default_wads; // texture names in the default wads
 vector<string> server_files;
 int unused_wads = 0;
-int max_reference_prints = 5;
-bool defines_custom_weapons = false;
+int max_reference_prints = 3;
 
 bool just_testing = false;
 bool print_all_references = false;
-bool print_skip = true;
+bool print_skip = false;
 bool quiet_mode = false;
 bool client_files_only = true; // don't include files not needed by clients (e.g. motd, .res file, scripts)
 bool write_separate_server_files = false; // if client_files_only is on, the server files will be written to mapname.res2
+bool write_missing = false;
 
 bool stringCompare( const string &left, const string &right )
 {
@@ -223,6 +223,38 @@ vector<string> get_cfg_resources(string map)
 				}
 			}
 
+			if (line.find("forcepmodels") == 0)
+			{
+				string force_pmodels = trimSpaces(line.substr(line.find("forcepmodels")+strlen("forcepmodels")));
+				force_pmodels.erase(std::remove(force_pmodels.begin(), force_pmodels.end(), '\"'), force_pmodels.end());
+
+				vector<string> models = splitString(force_pmodels, ";");
+				for (int i = 0; i < models.size(); i++)
+				{
+					string model = models[i];
+					if (model.length() == 0)
+						continue;
+					string path = "models/player/" + model + "/" + model;
+
+					trace_missing_file(path + ".mdl", cfg, true);
+					trace_missing_file(path + ".bmp", cfg, true);
+					push_unique(cfg_res, path + ".mdl");
+					push_unique(cfg_res, path + ".bmp");
+
+					string model_path = normalize_path(path + ".mdl");
+					Mdl mdl = Mdl(model_path);
+					if (mdl.valid)
+					{
+						vector<string> model_res = mdl.get_resources();
+						for (int k = 0; k < model_res.size(); k++)
+						{
+							trace_missing_file(model_res[k], cfg + " --> " + model_path, true);
+							push_unique(cfg_res, model_res[k]);
+						}
+					}
+				}
+			}
+
 			if (line.find("sentence_file") == 0)
 			{
 				string val = trimSpaces(line.substr(line.find("sentence_file")+strlen("sentence_file")));
@@ -366,10 +398,6 @@ bool write_map_resources(string map)
 		push_unique(all_resources, "maps/" + map + ".save");
 	}
 
-	if (defines_custom_weapons)
-	{
-	}
-
 	push_unique(all_resources, "maps/" + map + ".res");
 	push_unique(server_files, "maps/" + map + ".res");
 
@@ -395,7 +423,7 @@ bool write_map_resources(string map)
 		else
 			bad_path = false;
 
-		if (bad_path) 
+		if (bad_path)
 		{
 			cout << "'" << oldPath << "' should not be restricted to a specific content folder. Referenced in:\n";
 			if (g_tracemap_req[oldPath].size())
@@ -527,8 +555,10 @@ bool write_map_resources(string map)
 				if (unused_wads == 0 && numskips == 0 && missing == 0) cout << endl;
 				cout << "Missing file \"" << file << "\" (usage unknown)\n\n";
 			}
-			all_resources.erase(all_resources.begin() + i);
-			i--;
+			if (!write_missing) {
+				all_resources.erase(all_resources.begin() + i);
+				i--;
+			}
 			missing++;
 		}
 	}
@@ -540,7 +570,8 @@ bool write_map_resources(string map)
 		{
 			if (find(server_files.begin(), server_files.end(), all_resources[i]) != server_files.end())
 			{
-				cout << "Skip optional: " << all_resources[i] << "\n";
+				if (print_skip)
+					cout << "Skip optional: " << all_resources[i] << "\n";
 				numskips++;
 				if (unused_wads == 0 && numskips == 0)
 					cout << endl;
@@ -571,7 +602,7 @@ bool write_map_resources(string map)
 	if (!just_testing)
 		fout.open("maps/" + map + ".res", ios::out | ios::trunc);
 
-	fout << "// Created with resguy v1\n";
+	fout << "// Created with Resguy v1\n";
 	fout << "// https://github.com/wootguy/resguy\n\n";
 
 	int numEntries = 0;
@@ -596,7 +627,7 @@ bool write_map_resources(string map)
 	if (!just_testing)
 	{
 		string out_file = "maps/" + map + ".res";
-		cout << "Wrote " << out_file << " - " <<  numEntries << " entries\n\n";
+		cout << "Wrote " << numEntries << " entries. " << missing << " files missing. " << numskips << " files skipped.\n\n";
 		fout.close(); 
 	}
 	else
@@ -633,10 +664,12 @@ int main(int argc, char* argv[])
 				just_testing = true;
 			if (arg == "-allrefs")
 				print_all_references = true;
-			if (arg == "-printdefault")
+			if (arg == "-printskip")
 				print_skip = true;
 			if (arg == "-quiet")
 				quiet_mode = true;
+			if (arg == "-missing")
+				write_missing = true;
 			if (arg == "-extra")
 				client_files_only = false;
 			if (arg == "-extra2")
@@ -683,7 +716,6 @@ int main(int argc, char* argv[])
 			unused_wads = 0;
 			g_tracemap_req.clear();
 			g_tracemap_opt.clear();
-			defines_custom_weapons = false;
 
 			string f = files[i];
 			int iname = f.find_last_of("\\/");

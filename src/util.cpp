@@ -819,7 +819,7 @@ string find_content_ext(string fname, string dir)
 
 string get_ext(string fname)
 {
-	int iext = fname.find_first_of(".");
+	int iext = fname.find_last_of(".");
 	if (iext != string::npos && iext < fname.length() - 1)
 	{
 		return toLowerCase(fname.substr(iext+1));
