@@ -28,27 +28,27 @@ Resguy will find and process the following files but __NOT__ include them in the
 - Global model/sound replacement files
 - Per-monster sound replacment files
 
-With RESgen, only .wav sounds were found in maps. Sven Co-op uses FMOD which supports a large variety of sounds. These are the types of sounds Resguy will find:
+With RESgen, only .wav sounds were found in maps. Sven Co-op uses FMOD which supports a large variety of file type. These are the types of sounds Resguy will find:
 
-- aiff, asf, asx, dls, flac, fsb, it, m3u, midi, mid, mod, mp2, pls, s3m, vag, wax, wma, xm, wav, ogg, mp3, au
+- aiff, asf, asx, au, dls, flac, fsb, it, m3u, mid, midi, mod, mp2, mp3, ogg, pls, s3m, vag, wav, wax, wma, xm
 
 # Usage:
 
-Place resguy.exe and default_content.txt in a content folder (svencoop_addon, svencoop_downloads, svencoop_hd, or svencoop) and run it from the command line:
+Place resguy.exe and default_content.txt into a content folder (e.g. svencoop, svencoop_addon, or something you made) and run it from the command line:
 
 ### resguy.exe [filename] [options]
 
-[filename] can be the name of a map ("stadium3" or "stadium3.bsp"), or a search string ("stadium*").
+__[filename]__ can be the name of a map ("stadium3" or "stadium3.bsp"), or a search string ("stadium*").
 
-The map will be searched for in the "maps" folder in the same location as the .exe, but it will also search the other content directories when something isn't found. 
+Maps will be searched for in the "maps" folder in the same location as the .exe, but it will also search the other content directories if it isn't found. The same goes for models/sounds/etc. 
 
-For example, if you place the program in "svencoop" but the maps are in "svencoop_addon" and the sounds are in "svencoop_downloads", everything will still be found.
+For example, if you place the program in "svencoop" but the maps are in "svencoop_addon" and the sounds are in "svencoop_downloads", everything should still be found.
 
 ### Available Options:
 
 **-test** = Don't write the .res file, just check if there are any missing files
 
-**-allrefs** = List all references for missing files (normally clipped to 5)
+**-allrefs** = List all references for missing files (normally clipped to 3)
 
 **-printdefault** = Print content that was skipped because it was listed in default_content.txt
 
@@ -62,6 +62,6 @@ This lists all content that is included with a fresh install of Sven Co-op. Usua
 
 To update the default content list, place Resguy in your "/common/Sven Co-op/svencoop/" folder and run this command:
 
-resguy.exe !gend
+__resguy.exe !gend__
 
 Maps should be repackaged if they rely on default content that was removed from the game.
