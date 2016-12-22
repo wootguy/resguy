@@ -496,9 +496,19 @@ bool write_map_resources(string map)
 		}
 	}
 
+	// count missing files
+	int missing = 0;
+	for (int i = 0; i < all_resources.size(); i++)
+	{
+		if (!contentExists(all_resources[i]) && get_ext(all_resources[i]) != "res")
+			missing++;
+	}
+
 	// write server files 
 	if (client_files_only && write_separate_server_files && !just_testing && server_files.size())
 	{
+		bool will_write_res = (all_resources.size() - missing) > server_files.size();
+
 		ofstream fout2;
 		fout2.open("maps/" + map + ".res2", ios::out | ios::trunc);
 		for (int i = 0; i < server_files.size(); i++)
@@ -515,6 +525,8 @@ bool write_map_resources(string map)
 					file = file.substr(file.find_first_of("\\/")+1);
 				}
 			}
+			else if (!will_write_res)
+				continue;
 			fout2 << file << endl;
 		}
 		fout2.close();
@@ -526,8 +538,9 @@ bool write_map_resources(string map)
 		return true;
 	}
 
-	// remove missing files
-	int missing = 0;
+	// remove+write missing files
+	missing = 0;
+	ofstream fmiss;
 	for (int i = 0; i < all_resources.size(); i++)
 	{
 		string file = all_resources[i];
@@ -555,13 +568,19 @@ bool write_map_resources(string map)
 				if (unused_wads == 0 && numskips == 0 && missing == 0) cout << endl;
 				cout << "Missing file \"" << file << "\" (usage unknown)\n\n";
 			}
-			if (!write_missing) {
-				all_resources.erase(all_resources.begin() + i);
-				i--;
+			if (write_missing) {
+				if (!fmiss.is_open())
+					fmiss.open("maps/" + map + ".res3", ios::out | ios::trunc);
+				fmiss << file << endl;
 			}
+
+			all_resources.erase(all_resources.begin() + i);
+			i--;
 			missing++;
 		}
 	}
+	if (fmiss.is_open())
+		fmiss.close();
 
 	// remove optional server files
 	if (client_files_only)
