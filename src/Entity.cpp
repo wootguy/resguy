@@ -1,6 +1,6 @@
 #include "Entity.h"
 #include <string>
-#include "Util.h"
+#include "util.h"
 
 using namespace std;
 

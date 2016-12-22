@@ -1,5 +1,5 @@
 #include "Wad.h"
-#include "Util.h"
+#include "util.h"
 #include <iostream>
 #include <fstream>
 
