@@ -448,7 +448,7 @@ vector<string> Bsp::get_textures()
 			//cout << "GOT WAD TEX: " << name << endl;
 		}
 	}
-
+	return tex_names;
 }
 
 bool Bsp::load_lumps(string fname)

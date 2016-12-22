@@ -167,7 +167,7 @@ int ceilPow2(int value);
 // convert / to \ in the pathname
 void winPath(string& path);
 
-vector<string> getDirFiles(string path, string searchStr);
+vector<string> getDirFiles(string path, string searchStr, string startswith="");
 
 vector<string> getSubdirs(string path);
 

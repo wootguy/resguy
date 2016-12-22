@@ -26,7 +26,7 @@ void Entity::addKeyvalue( Keyvalue& k )
 	{
 		while (true)
 		{
-			string newKey = k.key + '#' + to_string((_Longlong)dup);
+			string newKey = k.key + '#' + to_string((long long)dup);
 			if (keyvalues.find(newKey) == keyvalues.end())
 			{
 				//println("wrote dup key " + newKey);
