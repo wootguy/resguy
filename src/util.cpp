@@ -796,22 +796,22 @@ string find_content_ext(string fname, string dir)
 {
 	vector<string> results;
 
-	results = getDirFiles(dir, fname + ".*");
+	results = getDirFiles(dir, fname + "*");
 	if (results.size()) return get_ext(results[0]);
 
-	results = getDirFiles("../svencoop_hd/" + dir, fname + ".*");
+	results = getDirFiles("../svencoop_hd/" + dir, fname + "*");
 	if (results.size()) return get_ext(results[0]);
 
-	results = getDirFiles("../svencoop_addon/" + dir, fname + ".*");
+	results = getDirFiles("../svencoop_addon/" + dir, fname + "*");
 	if (results.size()) return get_ext(results[0]);
 
-	results = getDirFiles("../svencoop_downloads/" + dir, fname + ".*");
+	results = getDirFiles("../svencoop_downloads/" + dir, fname + "*");
 	if (results.size()) return get_ext(results[0]);
 
-	results = getDirFiles("../svencoop/" + dir, fname + ".*");
+	results = getDirFiles("../svencoop/" + dir, fname + "*");
 	if (results.size()) return get_ext(results[0]);
 
-	results = getDirFiles("../valve/" + dir, fname + ".*");
+	results = getDirFiles("../valve/" + dir, fname + "*");
 	if (results.size()) return get_ext(results[0]);
 
 	return "";
@@ -995,12 +995,12 @@ int ceilPow2( int value )
 }
 
 
-vector<string> getDirFiles( string path, string searchStr )
+vector<string> getDirFiles( string path, string extension, string startswith )
 {
     vector<string> results;
     
-    #if defined(WIN32) || defined(_WIN32)
-	path = path + searchStr;
+#if defined(WIN32) || defined(_WIN32)
+	path = path + startswith + "*." + extension;
     winPath(path);
     WIN32_FIND_DATA FindFileData;
     HANDLE hFind;
@@ -1021,8 +1021,10 @@ vector<string> getDirFiles( string path, string searchStr )
 
 		FindClose(hFind);
 	}
-    #else
+#else
     extension = toLowerCase(extension);
+    startswith = toLowerCase(startswith);
+	startswith.erase(std::remove(startswith.begin(), startswith.end(), '*'), startswith.end());
     DIR *dir = opendir(path.c_str());
     
     if(!dir)
@@ -1041,15 +1043,18 @@ vector<string> getDirFiles( string path, string searchStr )
         string name = string(entry->d_name);
         string lowerName = toLowerCase(name);
         
-        if(extension.size() > name.size())
+        if(extension.size() > name.size() || startswith.size() > name.size())
             continue;
         
-        if(std::equal(extension.rbegin(), extension.rend(), lowerName.rbegin()))
-            results.push_back(name);
+        if(extension == "*" || std::equal(extension.rbegin(), extension.rend(), lowerName.rbegin()))
+		{
+			if (startswith.size() == 0 || std::equal(startswith.begin(), startswith.end(), lowerName.begin()))
+				results.push_back(name);
+		}
     }
     
     closedir(dir);
-    #endif
+#endif
     
     return results;
 }

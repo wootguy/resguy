@@ -1,5 +1,6 @@
 #include "Mdl.h"
 #include <algorithm>
+#include <string.h>
 
 Mdl::Mdl(string fname)
 {

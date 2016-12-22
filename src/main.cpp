@@ -7,6 +7,7 @@
 #include <fstream>
 #include <algorithm>
 #include "globals.h"
+#include <string.h>
 
 using namespace std;
 
@@ -92,7 +93,7 @@ void generate_default_content_file()
 
 	for (int i = 0; i < all_dirs.size(); i++)
 	{
-		vector<string> files = getDirFiles(all_dirs[i], "*.*");
+		vector<string> files = getDirFiles(all_dirs[i], "*");
 		for (int k = 0; k < files.size(); k++)
 		{
 			if (files[k] == "." || files[k] == ".." || files[k].size() == 0)
@@ -379,19 +380,22 @@ bool write_map_resources(string map)
 	insert_unique(get_cfg_resources(map), all_resources);
 	insert_unique(get_detail_resources(map), all_resources);
 
-	if (contentExists("maps/" + map + "_skl.cfg"))
+	string skl = "maps/" + map + "_skl.cfg";
+	if (contentExists(skl))
 	{
 		//trace_missing_file("maps/" + map + "_skl.cfg", "(optional file)", false);
 		//push_unique(all_resources, "maps/" + map + "_skl.cfg");
 		push_unique(server_files, "maps/" + map + "_skl.cfg");
 	}
-	if (contentExists("maps/" + map + "_motd.txt"))
+	string motd = "maps/" + map + "_motd.txt";
+	if (contentExists(motd))
 	{
 		trace_missing_file("maps/" + map + "_motd.txt", "(optional file)", false);
 		push_unique(server_files, "maps/" + map + "_motd.txt");
 		push_unique(all_resources, "maps/" + map + "_motd.txt");
 	}
-	if (contentExists("maps/" + map + ".save"))
+	string save = "maps/" + map + ".save";
+	if (contentExists(save))
 	{
 		trace_missing_file("maps/" + map + ".save", "(optional file)", false);
 		push_unique(server_files, "maps/" + map + ".save");
@@ -532,7 +536,7 @@ bool write_map_resources(string map)
 		fout2.close();
 	}
 
-	if (all_resources.size() == 0 || all_resources.size() == 1 && get_ext(all_resources[0]) == "res")
+	if (all_resources.size() == 0 || (all_resources.size() == 1 && get_ext(all_resources[0]) == "res"))
 	{
 		cout << "No .res file needed. Map uses default content only.\n";
 		return true;
@@ -601,7 +605,7 @@ bool write_map_resources(string map)
 		}
 	}
 
-	if (all_resources.size() == 0 || all_resources.size() == 1 && get_ext(all_resources[0]) == "res")
+	if (all_resources.size() == 0 || (all_resources.size() == 1 && get_ext(all_resources[0]) == "res"))
 	{
 		if (missing)
 			cout << "No .res file generated. All required files are missing!\n";
@@ -714,12 +718,12 @@ int main(int argc, char* argv[])
 	int ret = 0;
 	if (all_maps)
 	{
-		vector<string> files = getDirFiles("maps/", map + "*.bsp");
-		insert_unique(getDirFiles("../svencoop_hd/maps/", map + "*.bsp"), files);
-		insert_unique(getDirFiles("../svencoop_addons/maps/", map + "*.bsp"), files);
-		insert_unique(getDirFiles("../svencoop_downloads/maps/", map + "*.bsp"), files);
-		insert_unique(getDirFiles("../svencoop/maps/", map + "*.bsp"), files);
-		insert_unique(getDirFiles("../valve/maps/", map + "*.bsp"), files);
+		vector<string> files = getDirFiles("maps/", "bsp", map);
+		insert_unique(getDirFiles("../svencoop_hd/maps/", "bsp", map), files);
+		insert_unique(getDirFiles("../svencoop_addons/maps/", "bsp", map), files);
+		insert_unique(getDirFiles("../svencoop_downloads/maps/", "bsp", map), files);
+		insert_unique(getDirFiles("../svencoop/maps/", "bsp", map), files);
+		insert_unique(getDirFiles("../valve/maps/", "bsp", map), files);
 		sort( files.begin(), files.end(), stringCompare );
 
 		if (!files.size()) {
