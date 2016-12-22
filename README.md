@@ -28,7 +28,7 @@ Resguy will find and process the following files but __NOT__ include them in the
 - Global model/sound replacement files
 - Per-monster sound replacment files
 
-With RESgen, only .wav sounds were found in maps. Sven Co-op uses FMOD which supports a large variety of file type. These are the types of sounds Resguy will find:
+With RESgen, only .wav sounds were found in maps. Sven Co-op uses FMOD which supports a large variety of file types. These are the types of sounds Resguy will find:
 
 - aiff, asf, asx, au, dls, flac, fsb, it, m3u, mid, midi, mod, mp2, mp3, ogg, pls, s3m, vag, wav, wax, wma, xm
 
