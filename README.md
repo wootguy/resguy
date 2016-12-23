@@ -53,7 +53,7 @@ __[filename]__ can be the name of a map ("stadium3" or "stadium3.bsp"), or a sea
 
 **-printskip** = Print content that was skipped because it was invalid, unused, optional, or listed in default_content.txt
 
-**-extra** = Include server-specific in .res file
+**-extra** = Include server-specific files in .res file
 
 **-extra2** = Write server-specific files to a separate .res2 file
 
@@ -67,7 +67,7 @@ To update the default content list, place resguy in your "/common/Sven Co-op/sve
 
 __resguy !gend__
 
-Maps should be repackaged if they rely on default content that was removed from the game.
+Maps will need to be repackaged if they rely on default content that was removed from the game.
 
 If for some reason you want to include default content in your .res file, delete default_content.txt.
 
