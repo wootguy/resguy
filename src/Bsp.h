@@ -53,6 +53,7 @@ class Bsp
 {
 public:
 	std::string name;
+	std::string path;
 	BSPHEADER header;
 	byte ** lumps;
 	bool valid;

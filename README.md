@@ -1,5 +1,4 @@
-# resguy
-Resguy is similar to RESgen, but can find all content that Sven Co-op maps are allowed to customize. It can also find dependencies between files, like T models and model sounds. Here is what Resguy will write in your .res files:
+Resguy is similar to RESgen and FLRGen, but can find all content that Sven Co-op maps are allowed to customize, and only includes what is required. It can also find dependencies between files, like T models and model sounds. This is what Resguy will write in your .res files:
 
 - Skybox .tga files
 - Wads that are actually used
@@ -21,7 +20,7 @@ Resguy will find and process the following files but __NOT__ include them in the
 
 - BSP file (client already knows about this)
 - MOTD file
-- CFG files (Note: SC doesn't even allow these to be transfered to clients)
+- CFG files (Note: SC does not even allow these to be transfered to clients)
 - Custom sentence files
 - Custom materials file
 - map_script file and all other scripts that it #includes
@@ -34,34 +33,42 @@ With RESgen, only .wav sounds were found in maps. Sven Co-op uses FMOD which sup
 
 # Usage:
 
-Place resguy.exe and default_content.txt into a content folder (e.g. svencoop, svencoop_addon, or something you made) and run it from the command line:
+Place resguy and default_content.txt into a content folder (e.g. svencoop, svencoop_addon, or something you made) and click to run it. It will ask you for a map name to generate the .res for (Note: You can type "&ast;" to target all maps or "stadium&ast;" to target all maps with a name that starts with "stadium").
 
-### resguy.exe [filename] [options]
-
-__[filename]__ can be the name of a map ("stadium3" or "stadium3.bsp"), or a search string ("stadium*").
-
-Maps will be searched for in the "maps" folder in the same location as the .exe, but it will also search the other content directories if it isn't found. The same goes for models/sounds/etc. 
+Maps will be searched for in the "maps" folder in the same location as the program, but it will also search the other content directories if it isn't found. The same goes for models/sounds/etc. 
 
 For example, if you place the program in "svencoop" but the maps are in "svencoop_addon" and the sounds are in "svencoop_downloads", everything should still be found.
 
+If you run resguy from the command line or a script, use the following syntax:
+
+### resguy [filename] [options]
+
+__[filename]__ can be the name of a map ("stadium3" or "stadium3.bsp"), or a search string ("stadium&ast;").
+
 ### Available Options:
 
-**-test** = Don't write the .res file, just check if there are any missing files
+**-test** = Don't write any .res files, just check for problems.
 
 **-allrefs** = List all references for missing files (normally clipped to 3)
 
-**-printdefault** = Print content that was skipped because it was listed in default_content.txt
+**-printskip** = Print content that was skipped because it was invalid, unused, optional, or listed in default_content.txt
 
-**-extra** = Write server-specific files to .res
+**-extra** = Include server-specific in .res file
 
 **-extra2** = Write server-specific files to a separate .res2 file
 
+**-missing3** = Write missing files to a separate .res3 file
+
 ## default_content.txt
 
-This lists all content that is included with a fresh install of Sven Co-op. Usually maps should omit these files from their map package, but content that was once considered default may be removed from the game in the future. This file should be updated every time the game updates, unless no content was added/removed.
+This lists all content that is included with a fresh install of Sven Co-op. Maps should exclude these files from their map package, and this list should be updated every time the game updates.*
 
-To update the default content list, place Resguy in your "/common/Sven Co-op/svencoop/" folder and run this command:
+To update the default content list, place resguy in your "/common/Sven Co-op/svencoop/" folder and run this command:
 
-__resguy.exe !gend__
+__resguy !gend__
 
 Maps should be repackaged if they rely on default content that was removed from the game.
+
+If for some reason you want to include default content in your .res file, delete default_content.txt.
+
+&ast;The goal of this file is to prevent people from overwriting default content with their own crap. If you're including default files just to future-proof your map package, there's still a chance that the game will update those files. At that point, you're distributing old versions of files and possibly breaking the game for people.
