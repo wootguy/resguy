@@ -364,15 +364,17 @@ vector<string> get_detail_resources(string map)
 
 bool write_map_resources(string map)
 {
-	cout << "Generating .res file for " << map << "\n";
 	vector<string> all_resources;
 
 	Bsp bsp(map);
 
 	if (!bsp.valid) {
-		cout << "ERROR: maps/" << map << ".bsp not found\n";
+		cout << "ERROR: " << map << ".bsp not found\n";
 		return false;
 	}
+
+	string map_path = bsp.path;
+	cout << "Generating .res file for " << bsp.path + map << "\n";
 
 	//cout << "Parsing " << bsp.name << ".bsp...\n\n";
 
@@ -514,7 +516,7 @@ bool write_map_resources(string map)
 		bool will_write_res = (all_resources.size() - missing) > server_files.size();
 
 		ofstream fout2;
-		fout2.open("maps/" + map + ".res2", ios::out | ios::trunc);
+		fout2.open(map_path + map + ".res2", ios::out | ios::trunc);
 		for (int i = 0; i < server_files.size(); i++)
 		{
 			string file = server_files[i];
@@ -574,7 +576,7 @@ bool write_map_resources(string map)
 			}
 			if (write_missing) {
 				if (!fmiss.is_open())
-					fmiss.open("maps/" + map + ".res3", ios::out | ios::trunc);
+					fmiss.open(map_path + map + ".res3", ios::out | ios::trunc);
 				fmiss << file << endl;
 			}
 
@@ -623,7 +625,7 @@ bool write_map_resources(string map)
 
 	ofstream fout;
 	if (!just_testing)
-		fout.open("maps/" + map + ".res", ios::out | ios::trunc);
+		fout.open(map_path + map + ".res", ios::out | ios::trunc);
 
 	fout << "// Created with Resguy v1\n";
 	fout << "// https://github.com/wootguy/resguy\n\n";
@@ -649,7 +651,6 @@ bool write_map_resources(string map)
 
 	if (!just_testing)
 	{
-		string out_file = "maps/" + map + ".res";
 		cout << "Wrote " << numEntries << " entries. " << missing << " files missing. " << numskips << " files skipped.\n\n";
 		fout.close(); 
 	}
@@ -690,8 +691,8 @@ int main(int argc, char* argv[])
 			if (arg == "-printskip")
 				print_skip = true;
 			if (arg == "-quiet")
-				quiet_mode = true;
-			if (arg == "-missing")
+				quiet_mode = true; // TODO
+			if (arg == "-missing3")
 				write_missing = true;
 			if (arg == "-extra")
 				client_files_only = false;

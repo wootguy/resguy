@@ -25,6 +25,7 @@ Bsp::Bsp(std::string mapname)
 	load_ents();
 
 	valid = true;
+	path = fname.substr(0, fname.find_last_of("/\\")+1);
 }
 
 Bsp::~Bsp()
