@@ -1330,56 +1330,6 @@ vector<string> splitString( string str, const char * delimitters )
 	return split;
 }
 
-string getFilename(string filename)
-{
-    #if defined(WIN32) || defined(_WIN32)
-	vector<string> components;
-	string old_filename = filename;
-	std::replace( filename.begin(), filename.end(), '/', '\\'); // windows slashes required
-
-	// SHGetFileInfoA only fixes the last part of the path. So we have to make sure each folder is correct, too
-	while (filename.length())
-	{
-		SHFILEINFO info;
-		// nuke the path separator so that we get real name of current path component
-
-		int dir = filename.find_last_of("\\");
-		string testing = filename;
-		if (dir != string::npos)
-			testing = getSubStr(filename, dir);
-
-		if (!matchStr(testing, ".."))
-		{
-			info.szDisplayName[0] = 0;
-			// TODO: So uh, this doesn't work if the user has file extensions hidden (which is on by default). That sucks.
-			SHGetFileInfoA( filename.c_str(), 0, &info, sizeof(info), SHGFI_DISPLAYNAME );
-			components.push_back(info.szDisplayName);  
-		}
-		else
-			components.push_back("..");
-		if (dir != string::npos)
-			filename = getSubStr(filename, 0, dir);
-		else
-			break;
-	}
-
-	string result;
-	for (int i = (int)components.size() - 1; i >= 0; --i)
-	{
-		result += components[i];
-		if (i > 0)
-			result += "/";
-	}
-
-    return result;
-    #else
-    //shouldn't do anything on *nix, if I understood the intention of this function correctly
-	// w00tguy: Yeah, this was meant to handle the case where mappers used the incorrect case and windows was ok with that.
-	//          On *nix, the map will just crash or be missing resources.
-    return filename;
-    #endif
-}
-
 bool dirExists(const string& path)
 {
     #if defined(WIN32) || defined(_WIN32)
