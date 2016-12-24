@@ -524,7 +524,6 @@ bool write_map_resources(string map)
 			{
 				if (!contentExists(file, true))
 					continue;
-				file = getFilename(file);
 				if (file.find("..") == 0) // strip "../svencoop_downloads/" or similar
 				{
 					file = file.substr(file.find_first_of("\\/")+1);
@@ -630,6 +629,7 @@ bool write_map_resources(string map)
 	fout << "// Created with Resguy v1\n";
 	fout << "// https://github.com/wootguy/resguy\n\n";
 
+
 	int numEntries = 0;
 	for (int i = 0; i < all_resources.size(); i++)
 	{
@@ -637,7 +637,6 @@ bool write_map_resources(string map)
 		if (!just_testing)
 		{
 			contentExists(file, true);
-			file = getFilename(file);
 			if (file.find("..") == 0) // strip "../svencoop_downloads/" or similar
 			{
 				file = file.substr(file.find_first_of("\\/")+1);

@@ -106,10 +106,6 @@ bool contains(const string& str, char c);
 
 string toLowerCase(string str);
 
-// OK hear me out, this will check the filesystem
-// to make sure the filename capitalization is correct
-string getFilename(string filename);
-
 /*
 	Returns true if the file could be found.
 	file - absolute path to the file (Ex: "C:\Project\thing.png")
