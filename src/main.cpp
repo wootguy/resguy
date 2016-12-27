@@ -87,12 +87,14 @@ void generate_default_content_file()
 {
 	cout << "Generating default content file...\n";
 
-	vector<string> all_dirs = getAllSubdirs("");
+	vector<string> all_dirs = getAllSubdirs("./");
 	vector<string> all_files;
 	vector<string> wad_files;
 
 	for (int i = 0; i < all_dirs.size(); i++)
 	{
+		string dir = all_dirs[i].substr(2); // skip "./"
+
 		vector<string> files = getDirFiles(all_dirs[i], "*");
 		for (int k = 0; k < files.size(); k++)
 		{
@@ -102,10 +104,13 @@ void generate_default_content_file()
 			if (files[k].find_last_of(".") == string::npos)
 				continue;
 
-			all_files.push_back(all_dirs[i] + files[k]);
+			if (toLowerCase(files[k]).find("resguy") == 0)
+				continue;
+
+			all_files.push_back(dir + files[k]);
 
 			if (get_ext(files[k]) == "wad")
-				wad_files.push_back(all_dirs[i] + files[k]);
+				wad_files.push_back(dir + files[k]);
 		}
 	}
 
@@ -667,7 +672,7 @@ int main(int argc, char* argv[])
 	if (argc > 1)
 	{
 		map = argv[1];
-		if (map == "!gend") {
+		if (map == "-gend") {
 			generate_default_content_file();
 #ifdef _DEBUG
 			system("pause");
