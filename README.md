@@ -65,7 +65,7 @@ This lists all content that is included with a fresh install of Sven Co-op. Maps
 
 To update the default content list, place resguy in your "/common/Sven Co-op/svencoop/" folder and run this command:
 
-__resguy !gend__
+__resguy -gend__
 
 Maps will need to be repackaged if they rely on default content that was removed from the game.
 
