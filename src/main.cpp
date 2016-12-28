@@ -718,7 +718,7 @@ bool write_map_resources(string map)
 	if (!just_testing)
 		fout.open(map_path + map + ".res", ios::out | ios::trunc);
 
-	fout << "// Created with Resguy v1\n";
+	fout << "// Created with resguy v12\n";
 	fout << "// https://github.com/wootguy/resguy\n\n";
 
 
