@@ -53,9 +53,9 @@ __[filename]__ can be the name of a map ("stadium3" or "stadium3.bsp"), or a sea
 
 **-printskip** = Print content that was skipped because it was invalid, unused, optional, or listed in default_content.txt
 
-**-extra** = Include server-specific files in .res file
+**-extra** = Include server files in .res file
 
-**-extra2** = Write server-specific files to a separate .res2 file
+**-extra2** = Write server files to a separate .res2 file
 
 **-missing3** = Write missing files to a separate .res3 file
 

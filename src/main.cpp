@@ -8,6 +8,35 @@
 #include <algorithm>
 #include "globals.h"
 #include <string.h>
+#include <stdlib.h>
+#include <stdio.h>
+
+#if defined(WIN32) || defined(_WIN32)
+#include <conio.h>
+#define CLEAR_COMMAND "cls"
+#else
+#include <termios.h>
+#define CLEAR_COMMAND "clear"
+
+char _getch()
+{
+	termios old, unbuffered;
+	char result;
+	tcgetattr(0, &old);
+	
+	unbuffered = old;
+	unbuffered.c_lflag &= ~ICANON;
+	unbuffered.c_lflag &= ~ECHO;
+	
+	tcsetattr(0, TCSANOW, &unbuffered);
+	
+	result = getchar();
+	
+	tcsetattr(0, TCSANOW, &old);
+	
+	return result;
+}
+#endif
 
 using namespace std;
 
@@ -25,6 +54,12 @@ bool client_files_only = true; // don't include files not needed by clients (e.g
 bool write_separate_server_files = false; // if client_files_only is on, the server files will be written to mapname.res2
 bool write_missing = false;
 
+// interactive mode vars
+bool interactive = false;
+bool chose_opts = false;
+string target_maps = "";
+bool map_not_found = false;
+
 bool stringCompare( const string &left, const string &right )
 {
 	int sz = left.size() > right.size() ? left.size() : right.size();
@@ -39,6 +74,9 @@ bool stringCompare( const string &left, const string &right )
 
 void load_default_content()
 {
+	default_content.clear();
+	default_wads.clear();
+
 	bool parsingTexNames = false;
 	string wad_name;
 	ifstream myfile("default_content.txt");
@@ -79,7 +117,7 @@ void load_default_content()
 	}
 	else
 	{
-		cout << "ERROR: default_content.txt is missing! Files from the base game may be included.\n";
+		cout << "WARNING:\ndefault_content.txt is missing! Files from the base game may be included.\n\n";
 	}
 }
 
@@ -367,6 +405,47 @@ vector<string> get_detail_resources(string map)
 	return resources;
 }
 
+void ask_options() 
+{
+	bool opts[] = {just_testing, print_all_references, print_skip, !client_files_only, 
+					   write_separate_server_files, write_missing};
+
+	while(true) 
+	{
+		system(CLEAR_COMMAND);
+
+		cout << endl << target_maps << "\n\n";
+
+		cout << "Select options with number keys. Confirm with Enter:\n\n";
+		cout << "\n 1. [" + string(opts[0] ? "X" : " ") +  "]  Don't write any .res files, just check for problems (-test)\n";
+		cout << "\n 2. [" + string(opts[1] ? "X" : " ") +  "]  List all references for missing files (-allrefs)\n";
+		cout << "\n 3. [" + string(opts[2] ? "X" : " ") +  "]  Print content that was skipped (-printskip)\n";
+		cout << "\n 4. [" + string(opts[3] ? "X" : " ") +  "]  Include server files in .res file (-extra)\n";
+		cout << "\n 5. [" + string(opts[4] ? "X" : " ") +  "]  Write server files to a separate .res2 file (-extra2)\n";
+		cout << "\n 6. [" + string(opts[5] ? "X" : " ") +  "]  Write missing files to a separate .res3 file (-missing3)\n";
+
+		char choice = _getch();
+		if (choice == '1') opts[0] = !opts[0];
+		if (choice == '2') opts[1] = !opts[1];
+		if (choice == '3') opts[2] = !opts[2];
+		if (choice == '4') opts[3] = !opts[3];
+		if (choice == '5') opts[4] = !opts[4];
+		if (choice == '6') opts[5] = !opts[5];
+			
+		if (choice == '\r' || choice == '\n') break;
+	}
+
+	just_testing = opts[0];
+	print_all_references = opts[1];
+	print_skip = opts[2];
+	client_files_only = !opts[3];
+	write_separate_server_files = opts[4];
+	write_missing = opts[5];
+
+	system(CLEAR_COMMAND);
+	cout << endl;
+}
+
 bool write_map_resources(string map)
 {
 	vector<string> all_resources;
@@ -375,7 +454,15 @@ bool write_map_resources(string map)
 
 	if (!bsp.valid) {
 		cout << "ERROR: " << map << ".bsp not found\n";
+		map_not_found = true;
 		return false;
+	}
+
+	// wait until now to choose opts because here we know at least one map exists
+	if (interactive && !chose_opts) 
+	{
+		ask_options();
+		chose_opts = true;
 	}
 
 	string map_path = bsp.path;
@@ -516,7 +603,7 @@ bool write_map_resources(string map)
 	}
 
 	// write server files 
-	if (client_files_only && write_separate_server_files && !just_testing && server_files.size())
+	if (write_separate_server_files && !just_testing && server_files.size())
 	{
 		bool will_write_res = (all_resources.size() - missing) > server_files.size();
 
@@ -666,6 +753,20 @@ bool write_map_resources(string map)
 	return missing == 0;
 }
 
+string bsp_name(string fname)
+{
+	string f = fname;
+	int iname = f.find_last_of("\\/");
+	if (iname != string::npos && iname < f.length()-1)
+		f = f.substr(iname+1);
+
+	int bidx = toLowerCase(f).find(".bsp");
+	if (bidx == f.length() - 4)
+		f = f.substr(0, f.length()-4);
+
+	return f;
+}
+
 int main(int argc, char* argv[])
 {
 	string map = "";
@@ -680,8 +781,6 @@ int main(int argc, char* argv[])
 			return 0;
 		}
 	}
-
-	load_default_content();
 	
 	if (argc > 2) 
 	{
@@ -705,11 +804,25 @@ int main(int argc, char* argv[])
 		}
 	}
 	
-	if (map.length() == 0)
+	interactive = map.length() == 0;
+	ask_for_map:	
+	if (interactive)
 	{
-		cout << "Enter map name to generate .res file for: ";
+		system(CLEAR_COMMAND);
+		cout << endl;
+		load_default_content();
+		chose_opts = false;
+		map_not_found = false;
+		cout << "What do you want to generate a .res file for?\n\nExamples:\n  stadium3 = target stadium3.bsp\n  stadium* = target all maps with a name that starts with \"stadium\"\n  *        = target all maps\n\nTarget: ";
 		cin >> map;
+		system(CLEAR_COMMAND);
+
+		#if !defined(WIN32) || !defined(_WIN32)
+			_getch(); // ignore newline
+		#endif
 	}
+	else
+		load_default_content();
 
 	// strip ".bsp" if it was added
 	int bidx = toLowerCase(map).find(".bsp");
@@ -731,43 +844,59 @@ int main(int argc, char* argv[])
 		insert_unique(getDirFiles("../valve/maps/", "bsp", map), files);
 		sort( files.begin(), files.end(), stringCompare );
 
-		if (!files.size()) {
-			cout << "No .bsp files found in the maps folder.\n";
-			return 1;
-		}
-
-		cout << "Generating .res files for " << files.size() << " maps...\n\n" << seperator;
-		for (int i = 0; i < files.size(); i++)
+		if (!files.size()) 
 		{
-			// reset globals
-			server_files.clear();
-			unused_wads = 0;
-			g_tracemap_req.clear();
-			g_tracemap_opt.clear();
-
-			string f = files[i];
-			int iname = f.find_last_of("\\/");
-			if (iname != string::npos && iname < f.length()-1)
-				f = f.substr(iname+1);
-
-			bidx = toLowerCase(f).find(".bsp");
-			if (bidx == f.length() - 4)
-				f = f.substr(0, f.length()-4);
-
-			if (!write_map_resources(f))
+			cout << "No maps matching the search string were found.\n";
+			ret = 2;
+			map_not_found = true;
+		}
+		else 
+		{
+			if (interactive)
 			{
-				ret = 1;
-#ifdef _DEBUG
-				system("pause");
-#endif
+				target_maps = "Generating .res files for:\n  ";
+				const int max_target = 4;
+				for (int i = 0; i < files.size(); i++) 
+				{
+					if (i > 0)
+						target_maps += ", ";
+					target_maps += bsp_name(files[i]);
+					if (i == max_target-1 && (files.size() - max_target > 1)) 
+					{
+						target_maps += string(" (") + to_string(files.size() - max_target) + " more...)";
+						break;
+					}
+				}
 			}
+			else
+				cout << "Generating .res files for " << files.size() << " maps...\n\n" << seperator;
 
-			if (i != files.size()-1)
-				cout << seperator;
+			for (int i = 0; i < files.size(); i++)
+			{
+				// reset globals
+				server_files.clear();
+				unused_wads = 0;
+				g_tracemap_req.clear();
+				g_tracemap_opt.clear();
+
+				string f = bsp_name(files[i]);
+
+				if (!write_map_resources(f))
+				{
+					ret = 2;
+					#ifdef _DEBUG
+						system("pause");
+					#endif
+				}
+
+				if (i != files.size()-1)
+					cout << seperator;
+			}
 		}
 	}
 	else
 	{
+		target_maps = "Generating .res file for:\n  " + map;
 		if (!write_map_resources(map))
 			ret = 1;
 	}
@@ -776,5 +905,15 @@ int main(int argc, char* argv[])
 	system("pause");
 #endif
 
-	return 0;
+
+	if (interactive)
+	{
+		cout << endl;
+		cout << "Press any key to continue...\n";
+		_getch();
+		if (map_not_found)
+			goto ask_for_map;
+	}
+
+	return ret;
 }
