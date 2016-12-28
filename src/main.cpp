@@ -605,7 +605,19 @@ bool write_map_resources(string map)
 	// write server files 
 	if (write_separate_server_files && !just_testing && server_files.size())
 	{
-		bool will_write_res = (all_resources.size() - missing) > server_files.size();
+		bool will_write_res = false;
+		int client_file_count = 0;
+		for (int i = 0; i < all_resources.size(); i++)
+		{
+			if (find(server_files.begin(), server_files.end(), all_resources[i]) == server_files.end())
+			{
+				if (++client_file_count > missing)
+				{
+					will_write_res = true;
+					break;
+				}
+			}
+		}
 
 		ofstream fout2;
 		fout2.open(map_path + map + ".res2", ios::out | ios::trunc);
