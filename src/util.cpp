@@ -103,6 +103,8 @@ vector<string> get_replacement_file_resources(string fname)
 {
 	vector<string> resources;
 
+	contentExists(fname, true); // fix caps
+
 	ifstream myfile(fname);
 	if (myfile.is_open())
 	{
@@ -139,6 +141,8 @@ vector<string> get_replacement_file_resources(string fname)
 vector<string> get_sentence_file_resources(string fname)
 {
 	vector<string> resources;
+
+	contentExists(fname, true); // fix caps
 
 	ifstream myfile(fname);
 	if (myfile.is_open())
@@ -440,7 +444,9 @@ vector<string> get_script_dependencies(string fname)
 	if (idir != string::npos && idir > folder.length())
 		folder = fname.substr(0, idir) + '/';
 
-	string trace = fname;
+	contentExists(fname, true); // fix caps
+
+	string trace = fname;	
 
 	ifstream myfile(fname);
 	if (myfile.is_open())
