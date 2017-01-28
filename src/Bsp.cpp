@@ -425,12 +425,6 @@ vector<string> Bsp::get_textures()
 	int num_textures = ((int*)textures)[0];
 	int lump_len = header.lump[LUMP_TEXTURES].nLength;
 
-	if (num_textures > MAX_MAP_TEXTURES)
-	{
-		cout << "Map has too many textures\n";
-		return tex_names;
-	}
-
 	for (int i = 0; i < num_textures; i++)
 	{
 		int offset = ((int*)textures)[i + 1];

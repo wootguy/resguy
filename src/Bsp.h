@@ -20,8 +20,6 @@
 #define LUMP_MODELS       14
 #define HEADER_LUMPS      15
 
-#define MAX_MAP_TEXTURES     512
-
 struct BSPLUMP
 {
 	int nOffset; // File offset to data

@@ -852,6 +852,7 @@ logos/8ball1.bmp
 logos/Egghead_01.bmp
 logos/Headcrab_01.bmp
 logos/SpaceBiker_01.bmp
+logos/Thumbs.db
 logos/andre.bmp
 logos/bean.bmp
 logos/camp1.bmp
@@ -1223,6 +1224,13 @@ maps/Ripent.exe
 maps/Ripent_x64.exe
 maps/_server_start.bsp
 maps/_server_start.cfg
+maps/abandoned.bsp
+maps/abandoned.cfg
+maps/abandoned.res
+maps/abandoned.txt
+maps/abandoned_motd.txt
+maps/abandoned_readme.txt
+maps/abandoned_skl.cfg
 maps/ba_global.gmr
 maps/ba_global.gsr
 maps/bm_sts.bsp
@@ -1837,6 +1845,7 @@ models/deadsimpleneo/barneyillusion.mdl
 models/deadsimpleneo/fastmedic.mdl
 models/deadsimpleneo/sentry.mdl
 models/deadsimpleneo/sentryt.mdl
+models/demonprey/voltigore_elite.mdl
 models/deployable_sentry.mdl
 models/descrcl/groundLL.mdl
 models/descrcl/groundLR.mdl
@@ -2891,6 +2900,7 @@ resource/LoadingDialogErrorVACBanned.res
 resource/LoadingDialogNoBanner.res
 resource/LoadingDialogNoBannerSingle.res
 resource/LoadingDialogVAC.res
+resource/Michroma.ttf
 resource/MultiplayerAdvancedDialog.res
 resource/MultiplayerAdvancedPage.res
 resource/NewGameDialog.res
@@ -4174,6 +4184,7 @@ sound/debris/zap6.wav
 sound/debris/zap7.wav
 sound/debris/zap8.wav
 sound/default_sentences.txt
+sound/demonprey/funkymusicshort.mp3
 sound/descrcl/bugs.ogg
 sound/descrcl/descrclsrf.txt
 sound/descrcl/desertwind.wav
