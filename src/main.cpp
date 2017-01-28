@@ -52,7 +52,8 @@ bool print_skip = false;
 bool quiet_mode = false;
 bool client_files_only = true; // don't include files not needed by clients (e.g. motd, .res file, scripts)
 bool write_separate_server_files = false; // if client_files_only is on, the server files will be written to mapname.res2
-bool write_missing = false;
+bool write_separate_missing = false;
+bool include_missing = false;
 bool case_sensitive_mode = true;
 
 // interactive mode vars
@@ -412,7 +413,7 @@ vector<string> get_detail_resources(string map)
 void ask_options() 
 {
 	bool opts[] = {just_testing, print_all_references, print_skip, !client_files_only, 
-					   write_separate_server_files, write_missing};
+					   write_separate_server_files, include_missing, write_separate_missing, !case_sensitive_mode};
 
 	while(true) 
 	{
@@ -424,9 +425,13 @@ void ask_options()
 		cout << "\n 1. [" + string(opts[0] ? "X" : " ") +  "]  Don't write any .res files, just check for problems (-test)\n";
 		cout << "\n 2. [" + string(opts[1] ? "X" : " ") +  "]  List all references for missing files (-allrefs)\n";
 		cout << "\n 3. [" + string(opts[2] ? "X" : " ") +  "]  Print content that was skipped (-printskip)\n";
-		cout << "\n 4. [" + string(opts[3] ? "X" : " ") +  "]  Include server files in .res file (-extra)\n";
+		cout << "\n 4. [" + string(opts[3] ? "X" : " ") +  "]  Write server files (-extra)\n";
 		cout << "\n 5. [" + string(opts[4] ? "X" : " ") +  "]  Write server files to a separate .res2 file (-extra2)\n";
-		cout << "\n 6. [" + string(opts[5] ? "X" : " ") +  "]  Write missing files to a separate .res3 file (-missing3)\n";
+		cout << "\n 6. [" + string(opts[5] ? "X" : " ") +  "]  Write missing files (-missing)\n";
+		cout << "\n 7. [" + string(opts[6] ? "X" : " ") +  "]  Write missing files to a separate .res3 file (-missing3)\n";
+#ifndef WIN32
+		cout << "\n 8. [" + string(opts[7] ? "X" : " ") +  "]  Disable case sensitivity (-icase)\n";
+#endif
 
 		char choice = _getch();
 		if (choice == '1') opts[0] = !opts[0];
@@ -435,6 +440,8 @@ void ask_options()
 		if (choice == '4') opts[3] = !opts[3];
 		if (choice == '5') opts[4] = !opts[4];
 		if (choice == '6') opts[5] = !opts[5];
+		if (choice == '7') opts[6] = !opts[6];
+		if (choice == '8') opts[7] = !opts[7];
 			
 		if (choice == '\r' || choice == '\n') break;
 	}
@@ -444,7 +451,9 @@ void ask_options()
 	print_skip = opts[2];
 	client_files_only = !opts[3];
 	write_separate_server_files = opts[4];
-	write_missing = opts[5];
+	include_missing = opts[5];
+	write_separate_missing = opts[6];
+	case_sensitive_mode = !opts[7];
 
 	system(CLEAR_COMMAND);
 	cout << endl;
@@ -687,14 +696,17 @@ bool write_map_resources(string map)
 				if (unused_wads == 0 && numskips == 0 && missing == 0) cout << endl;
 				cout << "Missing file \"" << file << "\" (usage unknown)\n\n";
 			}
-			if (write_missing) {
+			if (write_separate_missing) {
 				if (!fmiss.is_open())
 					fmiss.open(map_path + map + ".res3", ios::out | ios::trunc);
 				fmiss << file << endl;
 			}
 
-			all_resources.erase(all_resources.begin() + i);
-			i--;
+			if (!include_missing)
+			{
+				all_resources.erase(all_resources.begin() + i);
+				i--;
+			}
 			missing++;
 		}
 	}
@@ -817,8 +829,10 @@ int main(int argc, char* argv[])
 				print_skip = true;
 			if (arg == "-quiet")
 				quiet_mode = true; // TODO
+			if (arg == "-missing")
+				include_missing = true;
 			if (arg == "-missing3")
-				write_missing = true;
+				write_separate_missing = true;
 			if (arg == "-extra")
 				client_files_only = false;
 			if (arg == "-extra2")
