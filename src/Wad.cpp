@@ -25,10 +25,9 @@ Wad::~Wad(void)
 
 bool Wad::readInfo()
 {
-	string path = filename;
-	const char * file = (path.c_str());
+	string file = filename;
 
-	if (!fileExists(file))
+	if (!fileExists(file, true))
 	{
 		cout << filename + " does not exist!\n";
 		return false;

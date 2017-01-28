@@ -24,9 +24,6 @@ enum read_dir
     FROM_END	// parse the string end to beginning (backwards)
 };
 
-// Return a string representing the current working directory (Ex: "C:\test").
-string getWorkDir();
-
 typedef unordered_map< string, vector<string> > str_map_vector;
 
 extern str_map_vector g_tracemap_req;
@@ -34,7 +31,6 @@ extern str_map_vector g_tracemap_opt;
 
 // if file is missing, log where it was used
 void trace_missing_file(string file, string reference, bool required);
-
 
 /*
 	Extract a section from a string
@@ -109,8 +105,9 @@ string toLowerCase(string str);
 /*
 	Returns true if the file could be found.
 	file - absolute path to the file (Ex: "C:\Project\thing.png")
+	fixPath - Update file param if the incorrect case was used (Linux only)
 */
-bool fileExists(const string& file);
+bool fileExists(string& file, bool fix_path=false);
 
 // searches all content folders (current dir + ../svencoop + ../svencoop_downloads + ../svencoop_hd etc.)
 // file is set to the first path where the file is found

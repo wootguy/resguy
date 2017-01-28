@@ -53,6 +53,7 @@ bool quiet_mode = false;
 bool client_files_only = true; // don't include files not needed by clients (e.g. motd, .res file, scripts)
 bool write_separate_server_files = false; // if client_files_only is on, the server files will be written to mapname.res2
 bool write_missing = false;
+bool case_sensitive_mode = true;
 
 // interactive mode vars
 bool interactive = false;
@@ -813,6 +814,8 @@ int main(int argc, char* argv[])
 				client_files_only = false;
 			if (arg == "-extra2")
 				write_separate_server_files = true;
+			if (arg == "-icase")
+				case_sensitive_mode = false;
 		}
 	}
 	
