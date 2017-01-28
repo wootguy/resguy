@@ -149,7 +149,7 @@ vector<string> Bsp::get_resources()
 				push_unique(resources, hud_file);
 
 				string hud_path = hud_file;
-				if (contentExists(hud_path))
+				if (contentExists(hud_path, true))
 				{
 					ifstream file(hud_path);
 					if (file.is_open())
