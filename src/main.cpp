@@ -461,7 +461,17 @@ void ask_options()
 
 bool isServerFile(string file)
 {
-	return find(server_files.begin(), server_files.end(), file) != server_files.end();
+	if (find(server_files.begin(), server_files.end(), file) != server_files.end())
+		return true;
+
+	if (file.find("..") == 0)
+	{
+		file = file.substr(file.find_first_of("\\/")+1);
+		file = file.substr(file.find_first_of("\\/")+1);
+		if (find(server_files.begin(), server_files.end(), file) != server_files.end())
+			return true;
+	}
+	return false;
 }
 
 bool write_map_resources(string map)
