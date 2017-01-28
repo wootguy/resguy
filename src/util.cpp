@@ -129,6 +129,8 @@ vector<string> get_replacement_file_resources(string fname)
 			push_unique(resources, normalize_path(line));
 		}
 	}
+	else
+		cout << "Failed to open: " << fname << endl;
 	myfile.close();
 
 	return resources;
@@ -181,6 +183,8 @@ vector<string> get_sentence_file_resources(string fname)
 			}
 		}
 	}
+	else
+		cout << "Failed to open: " << fname << endl;
 	myfile.close();
 
 	return resources;
@@ -597,6 +601,8 @@ vector<string> get_script_dependencies(string fname)
 			}
 		}
 	}
+	else
+		cout << "Failed to open: " << fname << endl;
 	myfile.close();
 
 	return resources;
@@ -628,6 +634,18 @@ string normalize_path(string s)
 		}
 		s += parts[i];
 	}
+
+	if (!case_sensitive_mode)
+	{
+		// fix file path capitilization
+		fileExists(s, true);
+		if (s.find("..") == 0) // strip ../svencoop_addons
+		{
+			s = s.substr(s.find_first_of("\\/")+1);
+			s = s.substr(s.find_first_of("\\/")+1);
+		}
+	}
+
 	return s;
 }
 

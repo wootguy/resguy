@@ -80,7 +80,10 @@ void load_default_content()
 
 	bool parsingTexNames = false;
 	string wad_name;
-	ifstream myfile("default_content.txt");
+	string default_content_path = "default_content.txt";
+	fileExists(default_content_path, true); // cheack caps
+
+	ifstream myfile(default_content_path);
 	if (myfile.is_open())
 	{
 		while ( !myfile.eof() )
@@ -204,7 +207,7 @@ vector<string> get_cfg_resources(string map)
 	//trace_missing_file(cfg, "(optional file)", false);
 	push_unique(server_files, cfg_path);
 
-	if (!contentExists(cfg_path))
+	if (!contentExists(cfg_path, true))
 		return cfg_res;
 
 	ifstream myfile(cfg_path);
@@ -368,7 +371,7 @@ vector<string> get_detail_resources(string map)
 
 	trace_missing_file(detail_path, "(optional file)", false);
 
-	if (!contentExists(detail_path))
+	if (!contentExists(detail_path, true))
 		return resources;
 
 	push_unique(resources, detail); // required by clients
@@ -447,6 +450,11 @@ void ask_options()
 	cout << endl;
 }
 
+bool isServerFile(string file)
+{
+	return find(server_files.begin(), server_files.end(), file) != server_files.end();
+}
+
 bool write_map_resources(string map)
 {
 	vector<string> all_resources;
@@ -501,6 +509,7 @@ bool write_map_resources(string map)
 	push_unique(server_files, "maps/" + map + ".res");
 
 	sort( all_resources.begin(), all_resources.end(), stringCompare );
+	sort( server_files.begin(), server_files.end(), stringCompare );
 
 	// fix bad paths (they shouldn't be legal, but they are)
 	for (int i = 0; i < all_resources.size(); i++)
@@ -610,7 +619,7 @@ bool write_map_resources(string map)
 		int client_file_count = 0;
 		for (int i = 0; i < all_resources.size(); i++)
 		{
-			if (find(server_files.begin(), server_files.end(), all_resources[i]) == server_files.end())
+			if (!isServerFile(all_resources[i]))
 			{
 				if (++client_file_count > missing)
 				{
@@ -697,7 +706,7 @@ bool write_map_resources(string map)
 	{
 		for (int i = 0; i < all_resources.size(); i++)
 		{
-			if (find(server_files.begin(), server_files.end(), all_resources[i]) != server_files.end())
+			if (isServerFile(all_resources[i]))
 			{
 				if (print_skip)
 					cout << "Skip optional: " << all_resources[i] << "\n";
