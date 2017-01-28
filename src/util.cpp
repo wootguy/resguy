@@ -56,27 +56,6 @@ uint64 getSystemTime()
     #endif
 }
 
-string getWorkDir()
-{
-    char cCurrentPath[FILENAME_MAX];
-
-    #ifdef OS_WIN
-        if (!GetCurrentDir(cCurrentPath, sizeof(cCurrentPath) / sizeof(TCHAR)))
-        {
-            return "ERROR: Could not determine working directory";
-        }
-    #else
-        getcwd(cCurrentPath, sizeof(cCurrentPath));
-    #endif
-
-    cCurrentPath[sizeof(cCurrentPath) - 1] = '\0'; /* not really required */
-    string path = cCurrentPath;
-    int index = -1;
-    while (( index = path.find('\\')) != -1)
-        path[index] = '/';
-    return path + "/";
-}
-
 string getSubStr(const string& s, int beginIndex, int endIndex)
 {
     string result = "";
@@ -755,40 +734,144 @@ string toLowerCase(string str)
 	return str;
 }
 
-bool fileExists(const string& file)
+bool fileExists(string& file, bool fix_path)
 {
-    if (FILE *f = fopen(file.c_str(), "r")) {
-        fclose(f);
-        return true;
-    } else {
-        return false;
-    }   
+	/*
+	if (FILE *f = fopen(file.c_str(), "r")) {
+		fclose(f);
+		return true;
+	} else {
+		return false;
+	}
+	*/
+
+	if (FILE *f = fopen(file.c_str(), "r")) {
+		fclose(f);
+		return true;
+	}
+
+#if defined(WIN32) || defined(_WIN32)
+	return false;
+#else
+	if (case_sensitive_mode)
+		return false;
+
+	// check each folder in the path for correct capitilization
+	string path = ".";
+	string filename = file;
+	if (file.find_first_of("/") != string::npos)
+	{
+		filename = file.substr(file.find_last_of("/")+1);
+		path = file.substr(0, file.find_last_of("/"));
+		vector<string> dirs = splitString(path, "/");
+		path = ".";
+		for (int i = 0; i < dirs.size(); i++)
+		{
+			// try exact match
+			string targetDir = path + "/" + dirs[i];
+			DIR *dir = opendir(targetDir.c_str());
+			if (dir)
+			{
+				path += "/" + dirs[i];
+				closedir(dir);
+				continue;
+			}
+			
+			// check other capitalizations
+			dir = opendir(path.c_str());
+			if (!dir)
+				return false; // shouldn't ever happen
+
+			string lowerDir = toLowerCase(dirs[i]);
+			bool found = false;
+			while(true)
+			{
+				dirent *entry = readdir(dir);
+		
+				if(!entry)
+					break;
+		
+				if(entry->d_type != DT_DIR)
+					continue;
+		
+				string name = string(entry->d_name);
+				string lowerName = toLowerCase(name);
+		
+				if (lowerName.compare(lowerDir) == 0)
+				{
+					path += "/" + name;
+					found = true;
+					break;
+				}
+			}
+			closedir(dir);
+			if (!found)
+				return false; // containing folder doesn't exist
+		}
+	}
+
+	if (path.length() > 2 && path[0] == '.')
+		path = path.substr(2); // skip "./"
+
+	// case-insensitive search for the file
+	DIR *dir = opendir(path.c_str());
+		
+	if(!dir)
+		return false;
+	
+	string lowerFile = toLowerCase(filename);
+	bool found = false;
+	while(true)
+	{
+		dirent *entry = readdir(dir);
+		
+		if(!entry)
+			break;
+		
+		if(entry->d_type == DT_DIR)
+			continue;
+		
+		string name = string(entry->d_name);
+		string lowerName = toLowerCase(name);
+		
+		if (lowerName.compare(lowerFile) == 0)
+		{
+			
+			if (fix_path)
+			{
+				string oldFile = file;
+				if (path.length() > 1 || path[0] != '.')
+					file = path + '/' + name;
+				else
+					file = name;
+				//cout << "Case mismatch: " << oldFile << " -> " << file << endl;
+			}
+			found = true;
+			break;
+		}
+	}
+	
+	closedir(dir);
+	return found;
+#endif
 }
 
 bool contentExists(string& file, bool fix_path)
 {
-	if (fileExists(file))
+	if (fileExists(file, fix_path))
 		return true;
-	if (fileExists("../svencoop_hd/" + file)) {
-		if (fix_path) file = "../svencoop_hd/" + file;
-		return true;
+
+	const int numContentDirs = 5;
+	const char * contentDirs[numContentDirs] = {"svencoop_hd", "svencoop_addon", "svencoop_downloads", "svencoop", "valve"};
+	for (int i = 0; i < numContentDirs; i++)
+	{
+		string f = "../" + string(contentDirs[i]) + "/" + file;
+		if (fileExists(f, fix_path)) {
+			if (fix_path) file = f;
+			return true;
+		}
 	}
-	if (fileExists("../svencoop_addon/" + file)) {
-		if (fix_path) file = "../svencoop_addon/" + file;
-		return true;
-	}
-	if (fileExists("../svencoop_downloads/" + file)) {
-		if (fix_path) file = "../svencoop_downloads/" + file;
-		return true;
-	}
-	if (fileExists("../svencoop/" + file)) {
-		if (fix_path) file = "../svencoop/" + file;
-		return true;
-	}
-	if (fileExists("../valve/" + file)) {
-		if (fix_path) file = "../valve/" + file;
-		return true;
-	}
+
 	return false;
 }
 

@@ -23,3 +23,4 @@ extern vector<string> server_files; // files used by server but not needed by cl
 extern int unused_wads;
 extern bool client_files_only;
 extern bool print_skip;
+extern bool case_sensitive_mode;
