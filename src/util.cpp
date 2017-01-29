@@ -528,7 +528,8 @@ vector<string> get_script_dependencies(string fname)
 					values.push_back(val);
 
 					// handle case where the full path is broken up into separate string literals for no reason
-					if (!contentExists(val) && !contentExists("sound/" + val))
+					string sound_val = "sound/" + val;
+					if (!contentExists(val) && !contentExists(sound_val))
 					{
 						string concatVal = "";
 						for (int i = 0; i < values.size(); i++)
