@@ -452,6 +452,7 @@ vector<string> get_script_dependencies(string fname)
 	if (myfile.is_open())
 	{
 		int lineNum = 0;
+		bool inCommentBlock = false;
 		while ( !myfile.eof() )
 		{
 			string line;
@@ -461,6 +462,38 @@ vector<string> get_script_dependencies(string fname)
 			line = trimSpaces(line);
 			if (line.find("//") == 0)
 				continue;
+			
+			// check for block comments
+			{	
+				size_t commentStart = line.find("/*");
+				size_t commentEnd = line.find("*/");
+
+				// remove inline block comments
+				while (commentStart != string::npos && commentEnd != string::npos)
+				{
+					line = line.substr(0, commentStart) + line.substr(commentEnd+2);
+					commentStart = line.find("/*");
+					commentEnd = line.find("*/");
+				}
+
+				// ignore lines contained in comment blocks
+				if (inCommentBlock)
+				{
+					if (commentEnd != string::npos)
+					{
+						inCommentBlock = false;
+						line = line.substr(commentEnd+2);
+						commentStart = commentEnd = string::npos;
+					}
+					else
+						continue;
+				}				
+				else if (commentStart != string::npos)
+				{
+					line = line.substr(0, commentStart);
+					inCommentBlock = true;
+				}
+			}
 
 			line = replaceChar(line, '\t', ' ' );
 			
@@ -471,8 +504,10 @@ vector<string> get_script_dependencies(string fname)
 				insert_unique(get_script_dependencies(include), resources);
 			}
 
+			// look for string literals
 			{
 				string s = line;
+				vector<string> values;
 				while (s.length())
 				{
 					if (s.find("\"") >= s.length() - 1)
@@ -489,6 +524,22 @@ vector<string> get_script_dependencies(string fname)
 
 					if (val.length() == ext.length() + 1)
 						continue; // probably a path constructed from vars
+
+					values.push_back(val);
+
+					// handle case where the full path is broken up into separate string literals for no reason
+					if (!contentExists(val) && !contentExists("sound/" + val))
+					{
+						string concatVal = "";
+						for (int i = 0; i < values.size(); i++)
+							concatVal += values[i];
+						if (contentExists(concatVal))
+						{
+							val = concatVal;
+							if (toLowerCase(concatVal).find("sound/") == 0) 
+								val = val.substr(6); // readded later
+						}
+					}
 
 					if (ext == "mdl")
 					{
