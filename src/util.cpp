@@ -131,8 +131,8 @@ vector<string> get_replacement_file_resources(string fname)
 			push_unique(resources, normalize_path(line));
 		}
 	}
-	else
-		cout << "Failed to open: " << fname << endl;
+	//else
+	//	cout << "Failed to open: " << fname << endl; // not needed - file will be flagged as missing later
 	myfile.close();
 
 	return resources;
@@ -187,8 +187,8 @@ vector<string> get_sentence_file_resources(string fname)
 			}
 		}
 	}
-	else
-		cout << "Failed to open: " << fname << endl;
+	//else
+	//	cout << "Failed to open: " << fname << endl; // not needed - file will be flagged as missing later
 	myfile.close();
 
 	return resources;
@@ -529,12 +529,12 @@ vector<string> get_script_dependencies(string fname)
 
 					// handle case where the full path is broken up into separate string literals for no reason
 					string sound_val = "sound/" + val;
-					if (!contentExists(val) && !contentExists(sound_val))
+					if (values.size() > 1 && !contentExists(val, false) && !contentExists(sound_val, false))
 					{
 						string concatVal = "";
 						for (int i = 0; i < values.size(); i++)
 							concatVal += values[i];
-						if (contentExists(concatVal))
+						if (contentExists(concatVal, false))
 						{
 							val = concatVal;
 							if (toLowerCase(concatVal).find("sound/") == 0) 
@@ -626,7 +626,7 @@ vector<string> get_script_dependencies(string fname)
 				push_unique(resources, hud_file);
 
 				string hud_path = hud_file;
-				if (contentExists(hud_path))
+				if (contentExists(hud_path, true))
 				{
 					ifstream file(hud_path);
 					if (file.is_open())
@@ -659,8 +659,8 @@ vector<string> get_script_dependencies(string fname)
 			}
 		}
 	}
-	else
-		cout << "Failed to open: " << fname << endl;
+	//else
+	//	cout << "Failed to open: " << fname << endl; // not needed - file will be flagged as missing later
 	myfile.close();
 
 	return resources;
@@ -1478,7 +1478,13 @@ vector<string> splitString( string str, const char * delimitters )
 	vector<string> split;
 	if (str.size() == 0)
 		return split;
-	string copy = str;
+	
+	// somehow plain assignment doesn't create a copy and even modifies the parameter that was passed by value (WTF!?!)
+	//string copy = str; 
+	string copy;
+	for (int i = 0; i < str.length(); i++)
+		copy += str[i]; 
+
 	char * tok = strtok((char *)copy.c_str(), delimitters);
 
 	while (tok != NULL)

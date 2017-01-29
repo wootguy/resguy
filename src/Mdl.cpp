@@ -6,7 +6,7 @@ Mdl::Mdl(string fname)
 {
 	valid = false;
 
-	if (!contentExists(fname))
+	if (!contentExists(fname, true))
 		return;
 
 	if (get_ext(fname) != "mdl")
@@ -147,7 +147,7 @@ vector<string> Mdl::get_resources()
 				push_unique(resources, muzzle_txt);
 				
 				string muzzle_txt_path = muzzle_txt;
-				if (!contentExists(muzzle_txt_path))
+				if (!contentExists(muzzle_txt_path, true))
 					continue;
 
 				// parse muzzleflash config for sprite name

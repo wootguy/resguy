@@ -111,7 +111,7 @@ bool fileExists(string& file, bool fix_path=false);
 
 // searches all content folders (current dir + ../svencoop + ../svencoop_downloads + ../svencoop_hd etc.)
 // file is set to the first path where the file is found
-bool contentExists(string& file, bool fix_path=true);
+bool contentExists(string& file, bool fix_path);
 
 // given a filename without an extension, search in a sound dir (for all content dirs) for any files with the same name
 // (used with custom sentences since extensions are omitted but are important)

@@ -14,7 +14,7 @@ Bsp::Bsp(std::string mapname)
 
 	bool exists = true;
 	string fname = "maps/" + mapname + ".bsp";
-	if (!contentExists(fname)) {
+	if (!contentExists(fname, true)) {
 		return;
 	}
 
@@ -246,7 +246,7 @@ vector<string> Bsp::get_resources()
 					cout << "Unused WAD: " << wadname << endl;
 				}
 			}
-			else if (contentExists(wadpath))
+			else if (contentExists(wadpath, true))
 			{
 				bool wad_is_used = false;
 				Wad wad(wadpath);

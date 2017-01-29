@@ -503,21 +503,21 @@ bool write_map_resources(string map)
 	insert_unique(get_detail_resources(map), all_resources);
 
 	string skl = "maps/" + map + "_skl.cfg";
-	if (contentExists(skl))
+	if (contentExists(skl, true))
 	{
 		//trace_missing_file("maps/" + map + "_skl.cfg", "(optional file)", false);
 		//push_unique(all_resources, "maps/" + map + "_skl.cfg");
 		push_unique(server_files, "maps/" + map + "_skl.cfg");
 	}
 	string motd = "maps/" + map + "_motd.txt";
-	if (contentExists(motd))
+	if (contentExists(motd, true))
 	{
 		trace_missing_file("maps/" + map + "_motd.txt", "(optional file)", false);
 		push_unique(server_files, "maps/" + map + "_motd.txt");
 		push_unique(all_resources, "maps/" + map + "_motd.txt");
 	}
 	string save = "maps/" + map + ".save";
-	if (contentExists(save))
+	if (contentExists(save, true))
 	{
 		trace_missing_file("maps/" + map + ".save", "(optional file)", false);
 		push_unique(server_files, "maps/" + map + ".save");
@@ -627,7 +627,7 @@ bool write_map_resources(string map)
 	int missing = 0;
 	for (int i = 0; i < all_resources.size(); i++)
 	{
-		if (!contentExists(all_resources[i]) && get_ext(all_resources[i]) != "res")
+		if (!contentExists(all_resources[i], false) && get_ext(all_resources[i]) != "res")
 			missing++;
 	}
 
@@ -682,7 +682,7 @@ bool write_map_resources(string map)
 	for (int i = 0; i < all_resources.size(); i++)
 	{
 		string file = all_resources[i];
-		if (!contentExists(file) && get_ext(file) != "res")
+		if (!contentExists(file, false) && get_ext(file) != "res")
 		{
 			if (g_tracemap_req[file].size())
 			{
