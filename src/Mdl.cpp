@@ -136,7 +136,7 @@ vector<string> Mdl::get_resources()
 				snd = normalize_path("sound/" + snd);
 				push_unique(resources, snd);
 			}
-			if (evt.event == 5001 || evt.event == 5011 || evt.event == 5021 || evt.event == 5032) // muzzleflash sprite
+			if (evt.event == 5001 || evt.event == 5011 || evt.event == 5021 || evt.event == 5031) // muzzleflash sprite
 			{
 				string snd = normalize_path(evt.options);
 				push_unique(resources, snd);
