@@ -31,6 +31,9 @@ vector<string> printlog;
 str_map_vector g_tracemap_req;
 str_map_vector g_tracemap_opt;
 
+const int numContentDirs = 5;
+const char * contentDirs[numContentDirs] = {"svencoop_hd", "svencoop_addon", "svencoop_downloads", "svencoop", "valve"};
+
 void trace_missing_file(string file, string reference, bool required)
 {
 	if (contentExists(file, false))
@@ -157,33 +160,65 @@ vector<string> get_sentence_file_resources(string fname)
 				continue;
 
 			line = replaceChar(line, '\t', ' ' );
+
+			// strip volume/pitch settings (e.g. "hgrunt/grenade!(v90 120)")
+			// Note: The game does this too - so filenames with parens in them won't work ( "alert(test)" becomes "alert" )
+			size_t parenStart = line.find("(");
+			size_t parenEnd = line.find(")", parenStart);
+			while (parenStart != string::npos && parenEnd != string::npos)
+			{
+				line = line.substr(0, parenStart) + line.substr(parenEnd+1);
+				parenStart = line.find("(");
+				parenEnd = line.find(")", parenStart);
+			}
+
+			// strip commas + periods
+			// Note: The game doesn't allow file extensions (alert.wav = alert + _period + wav)
+			bool usesComma = line.find(",") != string::npos;
+			bool usesPeriod = line.find(".") != string::npos;
+			line = replaceChar(line, ',', ' ');
+			line = replaceChar(line, '.', ' ');
+
+			// Get folder name if specified
+			string folder = "vox/";
+			size_t folderEnd = line.find_first_of("/");
+			if (folderEnd != string::npos) {
+				folder = line.substr(0, folderEnd+1);
+				size_t folderStart = folder.find_last_of(" \t");
+				if (folderStart != string::npos)
+					folder = folder.substr(folderStart+1);
+				line = line.substr(folderEnd+1);
+			} else {
+				// vox speech
+				size_t firstSnd = line.find_first_of(" \t");
+				if (firstSnd != string::npos)
+					line = line.substr(firstSnd+1);
+			}
+
 			vector<string> parts = splitString(line, " ");
-			if (parts.size() < 2)
+
+			if (usesComma)
+				parts.push_back("_comma");
+			if (usesPeriod)
+				parts.push_back("_period");
+
+			if (parts.size() == 0)
 				continue;
 
-			string folder = "";
 			for (int i = 1; i < parts.size(); i++)
 			{
 				string snd = parts[i];
-				if (i == 1)
-				{
-					int idir = snd.find_first_of("/");
-					if (idir != string::npos && idir < snd.length()-1)
-					{
-						folder = snd.substr(0, idir+1);
-						snd = snd.substr(idir+1);
-					}
-				}
 				string ext = find_content_ext(snd, "sound/" + folder);
 				if (ext.length()) 
 				{
-					snd = folder + snd + "." + ext;
-					push_unique(resources, normalize_path("sound/" + snd));
+					snd = normalize_path("sound/" + folder + snd + "." + ext);
 				}
 				else
 				{
-					cout << "ERROR: Can't find 'sound/" << folder << snd << "' referenced in sentence file.\n";
+					// not required to be a .wav but the trace won't work otherwise.
+					snd = normalize_path("sound/" + folder + snd + ".wav");
 				}
+				push_unique(resources, snd);
 			}
 		}
 	}
@@ -670,14 +705,16 @@ string normalize_path(string s)
 {
 	s = replaceChar(s, '\\', '/');
 	vector<string> parts = splitString(s, "/");
+	int depth = 0;
 	for (int i = 0; i < parts.size(); i++)
 	{
+		depth++;
 		if (parts[i] == "..")
 		{
-			if (i == 0)
+			depth--;
+			if (depth == 0)
 			{
-				cout << "Failed to normalize path: " << s << endl;
-				return s;
+				continue; // can only .. up to Sven Co-op, and not any further
 			}
 			parts.erase(parts.begin() + i);
 			parts.erase(parts.begin() + (i-1));
@@ -937,8 +974,6 @@ bool contentExists(string& file, bool fix_path)
 	if (fileExists(file, fix_path))
 		return true;
 
-	const int numContentDirs = 5;
-	const char * contentDirs[numContentDirs] = {"svencoop_hd", "svencoop_addon", "svencoop_downloads", "svencoop", "valve"};
 	for (int i = 0; i < numContentDirs; i++)
 	{
 		string f = "../" + string(contentDirs[i]) + "/" + file;
@@ -955,23 +990,14 @@ string find_content_ext(string fname, string dir)
 {
 	vector<string> results;
 
-	results = getDirFiles(dir, fname + "*");
+	results = getDirFiles(dir, "*", fname);
 	if (results.size()) return get_ext(results[0]);
 
-	results = getDirFiles("../svencoop_hd/" + dir, fname + "*");
-	if (results.size()) return get_ext(results[0]);
-
-	results = getDirFiles("../svencoop_addon/" + dir, fname + "*");
-	if (results.size()) return get_ext(results[0]);
-
-	results = getDirFiles("../svencoop_downloads/" + dir, fname + "*");
-	if (results.size()) return get_ext(results[0]);
-
-	results = getDirFiles("../svencoop/" + dir, fname + "*");
-	if (results.size()) return get_ext(results[0]);
-
-	results = getDirFiles("../valve/" + dir, fname + "*");
-	if (results.size()) return get_ext(results[0]);
+	for (int i = 0; i < numContentDirs; i++)
+	{
+		results = getDirFiles("../" + string(contentDirs[i]) + "/" + dir, "*", fname);
+		if (results.size()) return get_ext(results[0]);
+	}
 
 	return "";
 }
