@@ -716,9 +716,12 @@ string normalize_path(string s)
 			{
 				continue; // can only .. up to Sven Co-op, and not any further
 			}
-			parts.erase(parts.begin() + i);
-			parts.erase(parts.begin() + (i-1));
-			i -= 2;
+			else if (i > 0)
+			{
+				parts.erase(parts.begin() + i);
+				parts.erase(parts.begin() + (i-1));
+				i -= 2;
+			}
 		}
 	}
 	s = "";
