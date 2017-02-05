@@ -96,9 +96,9 @@ make
 ```
 
 ### Windows users:
-1) Install CMake and Visual Studio
-2) Download and extract the source somewhere
-3) Open a command prompt in the source folder (one level above "src") and run these commands:
+1. Install CMake and Visual Studio
+2. Download and extract the source somewhere
+3. Open a command prompt in the source folder (one level above "src") and run these commands:
 ```
 md build; cd build
 cmake ..
