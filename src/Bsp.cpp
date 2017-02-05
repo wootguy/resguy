@@ -22,8 +22,6 @@ Bsp::Bsp(std::string mapname)
 		return;
 	}
 
-	load_ents();
-
 	valid = true;
 	path = fname.substr(0, fname.find_last_of("/\\")+1);
 }
@@ -44,6 +42,8 @@ Bsp::~Bsp()
 vector<string> Bsp::get_resources()
 {
 	vector<string> resources;
+
+	load_ents();
 
 	push_unique(server_files, "maps/" + name + ".bsp");
 

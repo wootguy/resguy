@@ -76,6 +76,7 @@ bool stringCompare( const string &left, const string &right )
 
 void load_default_content()
 {
+	cout << "Loading default content...";
 	default_content.clear();
 	default_wads.clear();
 
@@ -95,33 +96,37 @@ void load_default_content()
 			line = trimSpaces(line);
 			if (line.find("//") == 0 || line.length() == 0)
 				continue;
-			if (line.find("[DEFAULT FILES]") != string::npos)
+			if (line[0] == '[')
 			{
-				parsingTexNames = false;
-				continue;
-			}
-			if (line.find("[DEFAULT TEXTURES]") != string::npos)
-			{
-				parsingTexNames = true;
-				continue;
-			}
-
-			if (parsingTexNames)
-			{
-				if (line[0] == '[')
+				if (line.find("[DEFAULT FILES]") != string::npos)
+				{
+					parsingTexNames = false;
+					continue;
+				}
+				if (line.find("[DEFAULT TEXTURES]") != string::npos)
+				{
+					parsingTexNames = true;
+					continue;
+				}
+				if (parsingTexNames)
 				{
 					wad_name = line.substr(1);
 					wad_name = wad_name.substr(0, wad_name.find_last_of("]"));
 					continue;
 				}
-				default_wads[wad_name].push_back(toLowerCase(line));
 			}
+			
+
+			if (parsingTexNames)
+				default_wads[wad_name].push_back(toLowerCase(line));
 			else
 				default_content.push_back(toLowerCase(normalize_path(line)));
 		}
+		system(CLEAR_COMMAND);
 	}
 	else
 	{
+		system(CLEAR_COMMAND);
 		cout << "WARNING:\ndefault_content.txt is missing! Files from the base game may be included.\n\n";
 	}
 }
@@ -150,7 +155,7 @@ void generate_default_content_file()
 			if (toLowerCase(files[k]).find("resguy") == 0)
 				continue;
 
-			all_files.push_back(dir + files[k]);
+			all_files.push_back(normalize_path(dir + files[k]));
 
 			if (get_ext(files[k]) == "wad")
 				wad_files.push_back(dir + files[k]);
@@ -410,7 +415,9 @@ vector<string> get_detail_resources(string map)
 	return resources;
 }
 
-void ask_options() 
+// returns 1 if user wants to choose a different map
+// returns -1 if user wants to quit
+int ask_options() 
 {
 	bool opts[] = {just_testing, print_all_references, print_skip, !client_files_only, 
 					   write_separate_server_files, include_missing, write_separate_missing, !case_sensitive_mode};
@@ -432,6 +439,7 @@ void ask_options()
 #ifndef WIN32
 		cout << "\n 8. [" + string(opts[7] ? "X" : " ") +  "]  Disable case sensitivity (-icase)\n";
 #endif
+		cout << "\nPress B to go back or Q to quit";
 
 		char choice = _getch();
 		if (choice == '1') opts[0] = !opts[0];
@@ -442,6 +450,8 @@ void ask_options()
 		if (choice == '6') opts[5] = !opts[5];
 		if (choice == '7') opts[6] = !opts[6];
 		if (choice == '8') opts[7] = !opts[7];
+		if (choice == 'Q' || choice == 'q') return -1;
+		if (choice == 'B' || choice == 'b') return 1;
 			
 		if (choice == '\r' || choice == '\n') break;
 	}
@@ -457,6 +467,8 @@ void ask_options()
 
 	system(CLEAR_COMMAND);
 	cout << endl;
+
+	return 0;
 }
 
 bool isServerFile(string file)
@@ -474,7 +486,11 @@ bool isServerFile(string file)
 	return false;
 }
 
-bool write_map_resources(string map)
+// 2 = error
+// 1 = go back
+// 0 = success
+// -1 = quit
+int write_map_resources(string map)
 {
 	vector<string> all_resources;
 
@@ -483,13 +499,15 @@ bool write_map_resources(string map)
 	if (!bsp.valid) {
 		cout << "ERROR: " << map << ".bsp not found\n";
 		map_not_found = true;
-		return false;
+		return 2;
 	}
 
 	// wait until now to choose opts because here we know at least one map exists
 	if (interactive && !chose_opts) 
 	{
-		ask_options();
+		int ret = ask_options();
+		if (ret)
+			return ret;
 		chose_opts = true;
 	}
 
@@ -673,7 +691,7 @@ bool write_map_resources(string map)
 	if (all_resources.size() == 0 || (all_resources.size() == 1 && get_ext(all_resources[0]) == "res"))
 	{
 		cout << "No .res file needed. Map uses default content only.\n";
-		return true;
+		return 0;
 	}
 
 	// remove+write missing files
@@ -748,11 +766,10 @@ bool write_map_resources(string map)
 			cout << "No .res file generated. All required files are missing!\n";
 		else
 			cout << "No .res file generated. Server-related files skipped.\n";
-		return true;
+		return 0;
 	}
 
 	// TODO: 
-	// Don't include WADs that aren't really used
 	// ignore missing files if they're only referenced in weird keyvalues that don't make sense for the entity
 	// (this can happen when you copy paste entities and change their types)
 	// ignore files in entities that are never triggered?
@@ -794,7 +811,7 @@ bool write_map_resources(string map)
 		cout << "Test finished. " << numEntries << " files found. " << missing << " files missing. " << numskips << " files skipped.\n\n";
 	}
 
-	return missing == 0;
+	return 0;
 }
 
 string bsp_name(string fname)
@@ -881,6 +898,7 @@ int main(int argc, char* argv[])
 
 	string seperator = "- - - - - - - - - - - - - - - - - - - - - - - - - - - - - -\n\n";
 
+	ask_for_opts:
 	int ret = 0;
 	if (all_maps)
 	{
@@ -929,9 +947,14 @@ int main(int argc, char* argv[])
 
 				string f = bsp_name(files[i]);
 
-				if (!write_map_resources(f))
+				int ret = write_map_resources(f);
+
+				if (ret == 1) goto ask_for_map;
+				if (ret == -1) return 0;
+
+				if (ret)
 				{
-					ret = 2;
+					ret = 1;
 					#ifdef _DEBUG
 						system("pause");
 					#endif
@@ -945,7 +968,12 @@ int main(int argc, char* argv[])
 	else
 	{
 		target_maps = "Generating .res file for:\n  " + map;
-		if (!write_map_resources(map))
+		int ret = write_map_resources(map);
+
+		if (ret == 1) goto ask_for_map;
+		if (ret == -1) return 0;
+
+		if (ret)
 			ret = 1;
 	}
 
@@ -961,6 +989,13 @@ int main(int argc, char* argv[])
 		_getch();
 		if (map_not_found)
 			goto ask_for_map;
+		else
+		{
+			chose_opts = false;
+			goto ask_for_opts;
+		}
+
+			
 	}
 
 	return ret;
