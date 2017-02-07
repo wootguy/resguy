@@ -31,12 +31,12 @@ Keyvalue::Keyvalue(string line)
 				end = i;
 				if (key.length() == 0)
 				{
-					key = getSubStr(line,begin,end);
+					key = line.substr(begin,end-begin);
 					begin = end = -1;
 				}
 				else
 				{
-					value = getSubStr(line,begin,end);
+					value = line.substr(begin,end-begin);
 					break;
 				}
 			}
@@ -74,7 +74,7 @@ vec3 Keyvalue::getVector()
 				i = len;
 			if (c == ' ' || i == len)
 			{
-				float coord = atof(getSubStr(value,begin,i).c_str());
+				float coord = atof(value.substr(begin,i-begin).c_str());
 				if (coordidx == 0)
 					v.x = coord;
 				else if (coordidx == 1)
@@ -87,7 +87,7 @@ vec3 Keyvalue::getVector()
 				begin = -1;
 			}
 		}
-		else if (isNumeric(c) || c == '.' || c == '-')
+		else if (isdigit(c) || c == '.' || c == '-')
 			begin = i;
 	}
 	if (coordidx < 3) cout << "Not enough coordinates in vector";

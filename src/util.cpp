@@ -59,43 +59,6 @@ uint64 getSystemTime()
     #endif
 }
 
-string getSubStr(const string& s, int beginIndex, int endIndex)
-{
-    string result = "";
-    int max = s.length();
-    if (beginIndex < 0 || beginIndex >= max)
-    {
-        cout << "getSubStr: Invalid begin index " << beginIndex << " '" << s << "'\n";
-        return "";
-    }
-    if (endIndex < 0 || endIndex > max)
-    {
-        cout << "getSubStr: Invalid end index " << endIndex << endl;
-        return "";
-    }
-    if (beginIndex >= endIndex)
-    {
-        //println("getSubStr: end index must be larger than begin index");
-        return "";
-    }
-
-    for (int i = beginIndex; i < endIndex; i++)
-        result += s[i];
-    return result;
-}
-
-string getSubStr(const string& s, int beginIndex)
-{
-    string result = "";
-    int max = s.size();
-    if (beginIndex < 0 || beginIndex >= max)
-        cout << "getSubStr: Invalid begin index " << beginIndex << " '" << s << "'\n";
-
-    for (int i = beginIndex; i < max; i++)
-        result += s.at(i);
-    return result;
-}
-
 string replaceChar(string s, char c, char with)
 {
 	replace(s.begin(), s.end(), c, with);
@@ -257,7 +220,7 @@ vector<string> parse_script_arg(string arg, string fname, string err)
 		bool isNumber = true;
 		int idx = -1;
 		for (int i = 0; i < index.size(); i++)
-			if (!isNumeric(index[i]))
+			if (!isdigit(index[i]))
 				isNumber = false;
 		if (isNumber)
 			idx = atoi(index.c_str());
@@ -411,7 +374,7 @@ vector<string> parse_script_arg(string arg, string fname, string err)
 		bool valid_var_name = true;
 		for (int i = 0; i < arg.length(); i++)
 		{
-			if (!isLetter(arg[i]) && !isNumeric(arg[i]) && arg[i] != '_')
+			if (!isalpha(arg[i]) && !isdigit(arg[i]) && arg[i] != '_')
 			{
 				valid_var_name = false;
 				break;
@@ -762,88 +725,6 @@ bool is_unique(vector<string>& list, string val)
 	return true;
 }
 
-bool matchStr(const string& str, const string& str2)
-{
-    if (str.length() == str2.length())
-    {
-        for (int i = 0, len = (int)str.length(); i < len; i++)
-        {
-            char l1 = str[i];
-            char l2 = str2[i];
-            if (l1 != l2 && !matchLetter(l1, l2))
-                return false;
-        }
-    }
-    else
-        return false;
-    return true;
-}
-
-bool matchLetter(char l1, char l2)
-{
-    if (isLetter(l1) && isLetter(l2))
-    {
-        if (l1 == l2 || l1 + 32 == l2 || l1 - 32 == l2)
-            return true;
-    }
-    //println("matchLetter: Both chars aren't letters!");
-    return false;
-}
-
-bool matchStrCase(const string& str, const string& str2)
-{
-    if (str.length() == str2.length())
-    {
-        for (int i = 0; i < (int)str.length(); i++)
-        {
-            if (str.at(i) != str2.at(i))
-                return false;
-        }
-    }
-    else
-        return false;
-    return true;
-}
-
-bool isLetter(char c)
-{
-    return ( c >= 65 && c <= 90) || (c >= 97 && c <= 122);
-}
-
-bool isCapitalLetter(char c)
-{
-	return c >= 65 && c <= 90;
-}
-
-bool isNumeric(char c)
-{
-    if (c >= 48 && c <= 57)
-        return true;
-    return false;
-}
-
-bool isNumber(const string& str)
-{
-    for (int i = 0 ; i < (int)str.length(); i++)
-    {
-        if (i == 0 && str.at(0) == '-')
-            continue;
-        if (!isNumeric(str.at(i)))
-            return false;
-    }
-    return true;
-}
-
-bool contains(const string& str, char c)
-{
-	for (size_t i = 0, size = str.size(); i < size; i++)
-	{
-		if (str.at(i) == c)
-			return true;
-	}
-	return false;
-}
-
 string toLowerCase(string str)
 {
 	transform(str.begin(), str.end(), str.begin(), ::tolower);
@@ -1015,121 +896,6 @@ string get_ext(string fname)
 	return "";
 }
 
-string getPath(const string& file)
-{
-    int index = file.find_last_of('/');
-
-    if (index == -1)
-        return "";
-    else if ((int) file.length() > index)
-        return getSubStr(file, 0, index + 1);
-    else
-        return file;
-}
-
-bool hasUppercaseLetters( const string& str )
-{
-	for (int i = 0; i < str.length(); i++)
-		if (isCapitalLetter(str[i]))
-			return true;
-	return false;
-}
-
-double readDouble(const string& line, int dir)
-{
-    int numBegin = -1;
-    int numEnd = -1;
-    bool hasPoint = false;
-
-    for (int i = 0; i < (int)line.length(); i++)
-    {
-        char c;
-        if (dir == FROM_START)
-            c = line.at(i);
-        else
-            c = line.at(line.length() - 1 - i);
-
-        if (numBegin == -1)
-        {
-            if (isNumeric(c) || (dir == FROM_START && c == '-') )
-                numBegin = i;
-        }
-        else
-        {
-            if (dir == FROM_START && !hasPoint && c == '.')
-                hasPoint = true;
-            else if ( !isNumeric(c) )
-            {
-                numEnd = i;
-                break;
-            }
-        }
-    }
-    if (numEnd == -1)
-        numEnd = line.length();
-    if (dir == FROM_END)
-    {
-        int temp = numEnd;
-        numEnd = line.length() - numBegin;
-        numBegin = line.length() - temp;
-    }
-
-    if (numBegin != -1 && numEnd != -1)
-        return atof(getSubStr(line, numBegin, numEnd).c_str());
-    else
-        cout << "readDouble: No digits were found in '" << line << "'\n";
-
-    return 0;
-}
-
-int readInt(const string& line, int dir)
-{
-    int numBegin = -1;
-    int numEnd = -1;
-
-    for (int i = 0; i < (int)line.length(); i++)
-    {
-        char c;
-        if (dir == FROM_START)
-            c = line.at(i);
-        else
-            c = line.at(line.length() - 1 - i);
-        if (numBegin == -1)
-        {
-            if (isNumeric(c) || (dir == FROM_START && c == '-') )
-                numBegin = i;
-        }
-        else
-        {
-            if (dir == FROM_END && c == '-')
-            {
-                numEnd = i + 1;
-                break;
-            }
-            if ( !isNumeric(c) )
-            {
-                numEnd = i;
-                break;
-            }
-        }
-    }
-    if (numEnd == -1)
-        numEnd = line.length();
-    if (dir == FROM_END)
-    {
-        int temp = numEnd;
-        numEnd = line.length() - numBegin;
-        numBegin = line.length() - temp;
-    }
-
-    if (numBegin != -1 && numEnd != -1)
-        return atoi(getSubStr(line, numBegin, numEnd).c_str());
-    else
-        cout << "readInt: No digits were found in '" << line << "'\n";
-
-    return 0;
-}
-
 string readQuote(const string& str)
 {
     int begin = -1;
@@ -1137,7 +903,7 @@ string readQuote(const string& str)
 
     for (int i = 0; i < (int)str.length(); i++)
     {
-        char c = str.at(i);
+        char c = str[i];
         if (begin == -1)
         {
             if (c == '"')
@@ -1150,38 +916,12 @@ string readQuote(const string& str)
         }
     }
     if (begin != -1 && end != -1)
-        return getSubStr(str, begin, end);
+        return str.substr(begin, end-begin);
    // else
    //     cout << "readQuote: Could not find quote in '" << str << "'\n";
 
     return "";
 }
-
-/*
-double toRadians(double deg)
-{
-    return deg*(PI/180.0);
-}
-
-double toDegrees(double rad)
-{
-    return rad*(180.0/PI);
-}
-*/
-
-int ceilPow2( int value )
-{
-    int pow = 1;
-    for (int i = 0; i < 32; i++) // 32 bits to shift through
-    {
-        if (value <= pow)
-            return pow;
-        pow = (pow << 1);
-    }
-    cout << "No power of two exists greater than " << value << " as an integer\n";
-    return -1;
-}
-
 
 vector<string> getDirFiles( string path, string extension, string startswith )
 {
@@ -1276,15 +1016,15 @@ vector<string> getSubdirs( string path )
 	else 
 	{
 		if (FindFileData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY && 
-			!matchStr(FindFileData.cFileName, ".") && 
-			!matchStr(FindFileData.cFileName, ".."))
+			(FindFileData.cFileName, ".") && 
+			strcasecmp(FindFileData.cFileName, "..") )
 			results.push_back(FindFileData.cFileName);
 
 		while (FindNextFile(hFind, &FindFileData) != 0)
 		{
 			if (FindFileData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY && 
-				!matchStr(FindFileData.cFileName, ".") && 
-				!matchStr(FindFileData.cFileName, ".."))
+				strcasecmp(FindFileData.cFileName, ".") && 
+				strcasecmp(FindFileData.cFileName, ".."))
 				results.push_back(FindFileData.cFileName);
 		}
 
@@ -1306,8 +1046,8 @@ vector<string> getSubdirs( string path )
         string name = string(entry->d_name);
         
         if(entry->d_type == DT_DIR &&
-           !matchStr(name, ".") &&
-           !matchStr(name, ".."))
+           strcasecmp(name.c_str(), ".") &&
+           strcasecmp(name.c_str(), ".."))
             results.push_back(name);
     }
     
@@ -1336,83 +1076,6 @@ char * loadFile( string file )
 	return buffer;
 }
 
-DateTime DateTime::now()
-{
-    #if defined(WIN32) || defined(_WIN32)
-	SYSTEMTIME t;
-	GetLocalTime(&t);
-	return DateTime(t.wYear, t.wMonth, t.wDay, t.wHour, t.wMinute, t.wSecond);
-    #else
-    time_t now = time(NULL);
-    tm *data = localtime(&now);
-    return DateTime(data->tm_year, data->tm_mon, data->tm_mday, data->tm_hour, data->tm_min, data->tm_sec);
-    #endif
-}
-
-string DateTime::str()
-{
-    #if defined(WIN32) || defined(_WIN32)
-	TIME_ZONE_INFORMATION tz;
-	GetTimeZoneInformation(&tz);
-	string zone = to_string(-tz.Bias / 60);
-	if (-tz.Bias >= 0)
-		zone = "+" + zone;
-	zone = " (UTC" + zone + ")";
-
-	string suffix = "AM";
-	int s_hour = hour;
-	string s_min = minute < 10 ? ("0" + ::to_string(minute)) : ::to_string(minute);
-	string s_sec = second < 10 ? ("0" + ::to_string(second)) : ::to_string(second);
-	if (hour > 12)
-	{
-		s_hour -= 12;
-		suffix = "PM";
-	}
-	return ::to_string(year) + "/" + ::to_string(month) + "/" + ::to_string(day) + " " + ::to_string(s_hour) + ":" + s_min + " " + suffix + " " + zone;
-    #else
-    char buffer[256];
-    time_t now = time(NULL);
-    tm *data = localtime(&now);
-    data->tm_year = year;
-    data->tm_mon = month;
-    data->tm_mday = day;
-    data->tm_hour = hour;
-    data->tm_min = minute;
-    data->tm_sec = second;
-    
-    strftime(buffer, 256, "%Y/%m/%d %I:%M %p (UTC %z)", data);
-    
-    return string(buffer);
-    #endif
-}
-
-string DateTime::compact_str()
-{
-    #if defined(WIN32) || defined(_WIN32)
-	string s_min = minute < 10 ? ("0" + ::to_string(minute)) : ::to_string(minute);
-	string s_hour = hour < 10 ? ("0" + ::to_string(hour)) : ::to_string(hour);
-	string s_day = day < 10 ? ("0" + ::to_string(day)) : ::to_string(day);
-	string s_month = month < 10 ? ("0" + ::to_string(month)) : ::to_string(month);
-	string s_year = year < 10 ? ("0" + ::to_string(year % 100)) : ::to_string(year % 100);
-
-	return s_year + s_month + s_day + s_hour + s_min;
-    #else
-    char buffer[256];
-    time_t now = time(NULL);
-    tm *data = localtime(&now);
-    data->tm_year = year;
-    data->tm_mon = month;
-    data->tm_mday = day;
-    data->tm_hour = hour;
-    data->tm_min = minute;
-    data->tm_sec = second;
-    
-    strftime(buffer, 256, "%y%m%d%H%M", data);
-    
-    return string(buffer);
-    #endif
-}
-
 void recurseSubdirs(string path, vector<string>& dirs)
 {
 	dirs.push_back(path);
@@ -1428,46 +1091,6 @@ vector<string> getAllSubdirs(string path)
 	return dirs;
 }
 
-// no slashes allowed at the end of start_dir
-string relative_path_to_absolute(string start_dir, string path)
-{
-	int up = path.find("../");
-	if (up == string::npos)
-		return start_dir + "/" + path;
-	
-	while (up != string::npos)
-	{
-		int up_dir = start_dir.find_last_of("\\/");
-		if (up_dir == string::npos)
-		{
-			if (start_dir.length())
-			{
-				up_dir = 0;
-				start_dir = "";
-			}
-			else
-			{
-				cout << "Could not convert '" << path << "' to absolute path using root dir: " << start_dir << endl; 
-				return start_dir + "/" + path;
-			}
-		}
-		if (up > 0) // some crazy person went back down a directory before going up
-		{
-			start_dir += getSubStr(path, 0, up-1);
-			path = getSubStr(path, up);
-			up = 0;
-		}
-		if (up_dir > 0)
-			start_dir = getSubStr(start_dir, 0, up_dir);
-		path = getSubStr(path, 3);
-		up = path.find("../");
-	}
-	if (start_dir.length())
-		return start_dir + "/" + path;	
-	else
-		return path;
-}
-
 void insert_unique(const vector<string>& insert, vector<string>& insert_into)
 {
 	for (uint i = 0; i < insert.size(); ++i)
@@ -1475,7 +1098,7 @@ void insert_unique(const vector<string>& insert, vector<string>& insert_into)
 		bool exists = false;
 		for (uint k = 0; k < insert_into.size(); ++k)
 		{
-			if (matchStr(insert_into[k], insert[i]))
+			if (strcasecmp(insert_into[k].c_str(), insert[i].c_str()) == 0)
 			{
 				exists = true;
 				break;
@@ -1534,30 +1157,5 @@ bool dirExists(const string& path)
     #else
     struct stat data;
     return stat(path.c_str(), &data) == 0 && S_ISDIR(data.st_mode);
-    #endif
-}
-
-string base36(int num)
-{
-	string b36;
-
-	while (num)
-	{
-		b36 = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"[num % 36] + b36;
-		num /= 36; 
-	}
-	return b36;
-}
-
-void sleepMsecs(int msecs)
-{
-    #if defined(WIN32) || defined(_WIN32)
-        Sleep(msecs);
-    #else
-        struct timespec spec;
-        spec.tv_sec = msecs / 1000;
-        spec.tv_nsec = 1000000 * (msecs % 1000);
-        
-        nanosleep(&spec, NULL);
     #endif
 }

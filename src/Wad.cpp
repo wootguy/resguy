@@ -109,7 +109,7 @@ void Wad::loadCache()
 bool Wad::hasTexture(string name)
 {
 	for (int d = 0; d < header.nDir; d++)
-		if (matchStr(name, dirEntries[d].szName))
+		if (strcasecmp(name.c_str(), dirEntries[d].szName) == 0)
 			return true;
 	return false;
 }
@@ -139,7 +139,7 @@ WADTEX * Wad::readTexture( const string& texname )
 	int idx = -1;
 	for (int d = 0; d < header.nDir; d++)
 	{
-		if (matchStr(texname, dirEntries[d].szName))
+		if (strcasecmp(texname.c_str(), dirEntries[d].szName) == 0)
 		{
 			idx = d;
 			break;
