@@ -718,9 +718,8 @@ void push_unique(vector<string>& list, string val)
 
 bool is_unique(vector<string>& list, string val)
 {
-	string val_lower = toLowerCase(val);
 	for (int i = 0; i < list.size(); i++)
-		if (toLowerCase(list[i]) == val_lower)
+		if (strcasecmp(list[i].c_str(), val.c_str()) == 0)
 			return false;
 	return true;
 }
