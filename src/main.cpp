@@ -120,7 +120,7 @@ void load_default_content()
 			if (parsingTexNames)
 				default_wads[wad_name].push_back(toLowerCase(line));
 			else
-				default_content.push_back(toLowerCase(normalize_path(line)));
+				default_content.push_back(toLowerCase(line));
 		}
 		system(CLEAR_COMMAND);
 	}
@@ -597,22 +597,19 @@ int write_map_resources(string map)
 	int numskips = 0;
 	for (int i = 0; i < all_resources.size(); i++)
 	{
-		for (int k = 0; k < default_content.size(); k++)
+		if (find(default_content.begin(), default_content.end(), toLowerCase(all_resources[i])) != default_content.end())
 		{
-			if (toLowerCase(all_resources[i]) == default_content[k])
+			if (print_skip)
 			{
-				if (print_skip)
-				{
-					if (unused_wads == 0 && numskips == 0)
-						cout << endl;
-					cout << "Skip default: " << all_resources[i] << "\n";
-				}
-				all_resources.erase(all_resources.begin() + i);
-				i--;
-				numskips++;
-				break;
+				if (unused_wads == 0 && numskips == 0)
+					cout << endl;
+				cout << "Skip default: " << all_resources[i] << "\n";
 			}
-		}
+			all_resources.erase(all_resources.begin() + i);
+			i--;
+			numskips++;
+			break;
+	}
 	}
 
 	// remove all referenced files with invalid extensions
