@@ -608,8 +608,7 @@ int write_map_resources(string map)
 			all_resources.erase(all_resources.begin() + i);
 			i--;
 			numskips++;
-			break;
-	}
+		}
 	}
 
 	// remove all referenced files with invalid extensions
