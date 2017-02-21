@@ -144,7 +144,7 @@ vector<string> get_sentence_file_resources(string fname)
 
 			// Get folder name if specified
 			string folder = "vox/";
-			size_t folderEnd = line.find_first_of("/");
+			size_t folderEnd = line.find_last_of("/");
 			if (folderEnd != string::npos) {
 				folder = line.substr(0, folderEnd+1);
 				size_t folderStart = folder.find_last_of(" \t");
@@ -168,7 +168,7 @@ vector<string> get_sentence_file_resources(string fname)
 			if (parts.size() == 0)
 				continue;
 
-			for (int i = 1; i < parts.size(); i++)
+			for (int i = 0; i < parts.size(); i++)
 			{
 				string snd = parts[i];
 				string ext = find_content_ext(snd, "sound/" + folder);
