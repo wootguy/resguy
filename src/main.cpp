@@ -756,7 +756,7 @@ int write_map_resources(string map)
 		}
 	}
 
-	if (all_resources.size() == 0 || (all_resources.size() == 1 && get_ext(all_resources[0]) == "res"))
+	if (!just_testing && all_resources.size() == 0 || (all_resources.size() == 1 && get_ext(all_resources[0]) == "res"))
 	{
 		if (missing)
 			cout << "No .res file generated. All required files are missing!\n";
