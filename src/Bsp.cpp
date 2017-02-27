@@ -242,8 +242,8 @@ vector<string> Bsp::get_resources()
 					needed_wads.push_back(wadname);
 				else if (print_skip)
 				{
-					if (unused_wads++ == 0) cout << endl;
-					cout << "Unused WAD: " << wadname << endl;
+					if (unused_wads++ == 0) log("\n");
+					log("Unused WAD: " + wadname + "\n");
 				}
 			}
 			else if (contentExists(wadpath, true))
@@ -268,8 +268,8 @@ vector<string> Bsp::get_resources()
 					needed_wads.push_back(wadname);
 				else if (print_skip)
 				{
-					if (unused_wads++ == 0) cout << endl;
-					cout << "Unused WAD: " << wadname << endl;
+					if (unused_wads++ == 0) log("\n");
+					log("Unused WAD: " + wadname + "\n");
 				}
 			}
 			else
@@ -290,12 +290,12 @@ vector<string> Bsp::get_resources()
 			else if (print_skip)
 			{
 				// if all map textures are accounted for in the existing wads, then this missing one must not be used.
-				if (unused_wads++ == 0) cout << endl;
-				cout << "Unused WAD: " << missing_wads[i] << endl;
+				if (unused_wads++ == 0) log("\n");
+				log("Unused WAD: " + missing_wads[i] + "\n");
 			}
 		}
 		if (map_textures.size())
-			cout << "ERROR: " << map_textures.size() << " missing textures\n";
+			log("ERROR: " + to_string(map_textures.size()) + " missing textures\n");
 
 		// find sky
 		string sky = worldSpawn->keyvalues["skyname"];
@@ -430,7 +430,7 @@ vector<string> Bsp::get_textures()
 		int offset = ((int*)textures)[i + 1];
 		if (offset + sizeof(BSPMIPTEX) > lump_len)
 		{
-			cout << "ERROR: Invalid texture lump offset: " + offset << endl;
+			log("ERROR: Invalid texture lump offset: " + to_string(offset) + "\n");
 			continue;
 		}
 		BSPMIPTEX * t = (BSPMIPTEX*)&textures[offset];
@@ -467,7 +467,7 @@ bool Bsp::load_lumps(string fname)
 		lumps[idx] = new byte[header.lump[idx].nLength];
 		fin.seekg(header.lump[idx].nOffset);
 		if (fin.eof()) {
-			cout << "FAILED TO READ BSP LUMP " << idx << endl;
+			log("FAILED TO READ BSP LUMP " + to_string(idx) + "\n");
 			valid = false;
 		}
 		else
@@ -501,7 +501,7 @@ void Bsp::load_ents()
 		{
 			if (lastBracket == 0)
 			{
-				cout << name << ".bsp ent data (line " << lineNum << "): Unexpected '{'\n";
+				log(name + ".bsp ent data (line " + to_string(lineNum) + "): Unexpected '{'\n");
 				continue;
 			}
 			lastBracket = 0;
@@ -513,7 +513,7 @@ void Bsp::load_ents()
 		else if (line[0] == '}')
 		{
 			if (lastBracket == 1)
-				cout << name << ".bsp ent data (line " << lineNum << "): Unexpected '}'\n";
+				log(name + ".bsp ent data (line " + to_string(lineNum) + "): Unexpected '}'\n");
 			lastBracket = 1;
 
 			if (ent == NULL)

@@ -82,7 +82,7 @@ vec3 Keyvalue::getVector()
 				else if (coordidx == 2)
 					v.z = coord;
 				else
-					cout << "too many coordinates in vertex";
+					log("too many coordinates in vertex '" + value + "'\n");
 				coordidx++;
 				begin = -1;
 			}
@@ -90,6 +90,6 @@ vec3 Keyvalue::getVector()
 		else if (isdigit(c) || c == '.' || c == '-')
 			begin = i;
 	}
-	if (coordidx < 3) cout << "Not enough coordinates in vector";
+	if (coordidx < 3) log("Not enough coordinates in vector '" + value + "'\n");
 	return v;
 }

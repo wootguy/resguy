@@ -24,3 +24,4 @@ extern int unused_wads;
 extern bool client_files_only;
 extern bool print_skip;
 extern bool case_sensitive_mode;
+extern bool log_enabled;
