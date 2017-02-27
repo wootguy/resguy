@@ -43,6 +43,14 @@ string replaceChar(string s, char c, char with);
 
 void trace_missing_file(str_map_vector trace_type, string file, string reference);
 
+// prints to screen and logs to file
+void log(string s, bool print_to_screen=true);
+
+// creates a new log file
+void log_init(string log_file_path);
+
+void log_close();
+
 // parses a sound/model replacement file and returns all unique resources on the right-hand side
 vector<string> get_replacement_file_resources(string fname);
 

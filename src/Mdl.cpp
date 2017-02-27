@@ -64,21 +64,22 @@ vector<string> Mdl::get_resources()
 
 	if (string(mdlHead.name).length() <= 0)
 	{
-		cout << "ERROR: Can't get dependencies from T model: " << fname << endl;
+		// Ignore T Models being used directly. Maybe it was in a custom_precache entity or something.
+		//log("ERROR: T model shouldn't be referenced directly: " + fname + "\n");
 		fin.close();
 		return resources;
 	}
 
 	if (mdlHead.id != 1414743113)
 	{
-		cout << "ERROR: Invalid ID in model header: " << fname << endl;
+		log("ERROR: Invalid ID in model header: " + fname + "\n");
 		fin.close();
 		return resources;
 	}
 
 	if (mdlHead.version != 10)
 	{
-		cout << "ERROR: Invalid version in model header: " << fname << endl;
+		log("ERROR: Invalid version in model header: " + fname + "\n");
 		fin.close();
 		return resources;
 	}

@@ -55,6 +55,7 @@ bool write_separate_server_files = false; // if client_files_only is on, the ser
 bool write_separate_missing = false;
 bool include_missing = false;
 bool case_sensitive_mode = true;
+bool log_enabled = false;
 
 // interactive mode vars
 bool interactive = false;
@@ -401,7 +402,7 @@ vector<string> get_detail_resources(string map)
 
 			if (parts.size() != 4)
 			{
-				cout << "Warning: Invalid line in detail file ( " << line_num << "): " << detail_path;
+				log("Warning: Invalid line in detail file ( " + to_string(line_num) + "): " + detail_path);
 				continue;
 			}
 
@@ -420,7 +421,8 @@ vector<string> get_detail_resources(string map)
 int ask_options() 
 {
 	bool opts[] = {just_testing, print_all_references, print_skip, !client_files_only, 
-					   write_separate_server_files, include_missing, write_separate_missing, !case_sensitive_mode};
+					   write_separate_server_files, include_missing, write_separate_missing, 
+					   log_enabled, !case_sensitive_mode};
 
 	while(true) 
 	{
@@ -429,15 +431,16 @@ int ask_options()
 		cout << endl << target_maps << "\n\n";
 
 		cout << "Select options with number keys. Confirm with Enter:\n\n";
-		cout << "\n 1. [" + string(opts[0] ? "X" : " ") +  "]  Don't write any .res files, just check for problems (-test)\n";
-		cout << "\n 2. [" + string(opts[1] ? "X" : " ") +  "]  List all references for missing files (-allrefs)\n";
-		cout << "\n 3. [" + string(opts[2] ? "X" : " ") +  "]  Print content that was skipped (-printskip)\n";
-		cout << "\n 4. [" + string(opts[3] ? "X" : " ") +  "]  Write server files (-extra)\n";
-		cout << "\n 5. [" + string(opts[4] ? "X" : " ") +  "]  Write server files to a separate .res2 file (-extra2)\n";
-		cout << "\n 6. [" + string(opts[5] ? "X" : " ") +  "]  Write missing files (-missing)\n";
-		cout << "\n 7. [" + string(opts[6] ? "X" : " ") +  "]  Write missing files to a separate .res3 file (-missing3)\n";
+		cout << " 1. [" + string(opts[0] ? "X" : " ") +  "]  Don't write any .res files, just check for problems (-test)\n";
+		cout << " 2. [" + string(opts[1] ? "X" : " ") +  "]  List all references for missing files (-allrefs)\n";
+		cout << " 3. [" + string(opts[2] ? "X" : " ") +  "]  Print content that was skipped (-printskip)\n";
+		cout << " 4. [" + string(opts[3] ? "X" : " ") +  "]  Write server files (-extra)\n";
+		cout << " 5. [" + string(opts[4] ? "X" : " ") +  "]  Write server files to a separate .res2 file (-extra2)\n";
+		cout << " 6. [" + string(opts[5] ? "X" : " ") +  "]  Write missing files (-missing)\n";
+		cout << " 7. [" + string(opts[6] ? "X" : " ") +  "]  Write missing files to a separate .res3 file (-missing3)\n";
+		cout << " 8. [" + string(opts[7] ? "X" : " ") +  "]  Log output to mapname_resguy.log (-log)\n";
 #ifndef WIN32
-		cout << "\n 8. [" + string(opts[7] ? "X" : " ") +  "]  Disable case sensitivity (-icase)\n";
+		cout << "\n 9. [" + string(opts[8] ? "X" : " ") +  "]  Disable case sensitivity (-icase)\n";
 #endif
 		cout << "\nPress B to go back or Q to quit";
 
@@ -450,6 +453,7 @@ int ask_options()
 		if (choice == '6') opts[5] = !opts[5];
 		if (choice == '7') opts[6] = !opts[6];
 		if (choice == '8') opts[7] = !opts[7];
+		if (choice == '9') opts[8] = !opts[8];
 		if (choice == 'Q' || choice == 'q') return -1;
 		if (choice == 'B' || choice == 'b') return 1;
 			
@@ -463,7 +467,8 @@ int ask_options()
 	write_separate_server_files = opts[4];
 	include_missing = opts[5];
 	write_separate_missing = opts[6];
-	case_sensitive_mode = !opts[7];
+	log_enabled = opts[7];
+	case_sensitive_mode = !opts[8];
 
 	system(CLEAR_COMMAND);
 	cout << endl;
@@ -512,7 +517,22 @@ int write_map_resources(string map)
 	}
 
 	string map_path = bsp.path;
-	cout << "Generating .res file for " << bsp.path + map << "\n";
+	log_init(map_path + map + "_resguy.log");
+
+	string opt_string;
+	opt_string += just_testing ? " -test" : "";
+	opt_string += print_all_references ? " -allrefs" : "";
+	opt_string += print_skip ? " -printskip" : "";
+	opt_string += !client_files_only ? " -extra" : "";
+	opt_string += write_separate_server_files ? " -extra2" : "";
+	opt_string += include_missing ? " -missing" : "";
+	opt_string += write_separate_missing ? " -missing3" : "";
+	opt_string += log_enabled ? " -log" : "";
+	opt_string += !case_sensitive_mode ? " -icase" : "";
+
+	log("Options Used:" + opt_string + "\n\n", false);
+
+	log("Generating .res file for " + bsp.path + map + "\n");
 
 	//cout << "Parsing " << bsp.name << ".bsp...\n\n";
 
@@ -570,7 +590,7 @@ int write_map_resources(string map)
 
 		if (bad_path)
 		{
-			cout << "'" << oldPath << "' should not be restricted to a specific content folder. Referenced in:\n";
+			log("'" + oldPath + "' should not be restricted to a specific content folder. Referenced in:\n");
 			if (g_tracemap_req[oldPath].size())
 			{
 				vector<string>& refs = g_tracemap_req[oldPath];
@@ -579,16 +599,16 @@ int write_map_resources(string map)
 					int left_to_print = refs.size() - i;
 					if (!print_all_references && i == (max_reference_prints - 1) && left_to_print > 1)
 					{
-						cout << "\t" << left_to_print << " more...\n";
+						log("\t" + to_string(left_to_print) + " more...\n");
 						break;
 					}
-					cout << "\t" << refs[i] << endl;
+					log("\t" + refs[i] + "\n");
 				}
-				cout << endl;
+				log("\n");
 			}
 			else
 			{
-				cout << "(usage unknown)\n\n";
+				log("(usage unknown)\n\n");
 			}
 		}
 	}
@@ -602,8 +622,8 @@ int write_map_resources(string map)
 			if (print_skip)
 			{
 				if (unused_wads == 0 && numskips == 0)
-					cout << endl;
-				cout << "Skip default: " << all_resources[i] << "\n";
+					log("\n");
+				log("Skip default: " + all_resources[i] + "\n");
 			}
 			all_resources.erase(all_resources.begin() + i);
 			i--;
@@ -628,8 +648,8 @@ int write_map_resources(string map)
 			if (print_skip)
 			{
 				if (unused_wads == 0 && numskips == 0)
-					cout << endl;
-				cout << "Skip invalid: " << all_resources[i] << "\n";
+					log("\n");
+				log("Skip invalid: " + all_resources[i] + "\n");
 			}
 			all_resources.erase(all_resources.begin() + i);
 			i--;
@@ -686,7 +706,8 @@ int write_map_resources(string map)
 
 	if (all_resources.size() == 0 || (all_resources.size() == 1 && get_ext(all_resources[0]) == "res"))
 	{
-		cout << "No .res file needed. Map uses default content only.\n";
+		log("No .res file needed. Map uses default content only.\n");
+		log_close();
 		return 0;
 	}
 
@@ -700,25 +721,25 @@ int write_map_resources(string map)
 		{
 			if (g_tracemap_req[file].size())
 			{
-				if (missing == 0) cout << endl;
+				if (missing == 0) log("\n");
 				vector<string>& refs = g_tracemap_req[file];
-				cout << "Missing file \"" << file << "\" referenced in:\n";
+				log("Missing file \"" + file + "\" referenced in:\n");
 				for (int i = 0; i < refs.size(); i++)
 				{
 					int left_to_print = refs.size() - i;
 					if (!print_all_references && i == (max_reference_prints - 1) && left_to_print > 1)
 					{
-						cout << "\t" << left_to_print << " more...\n";
+						log("\t" + to_string(left_to_print) + " more...\n");
 						break;
 					}
-					cout << "\t" << refs[i] << endl;
+					log("\t" + refs[i]);
 				}
-				cout << endl;
+				log("\n");
 			}
 			else
 			{
-				if (unused_wads == 0 && numskips == 0 && missing == 0) cout << endl;
-				cout << "Missing file \"" << file << "\" (usage unknown)\n\n";
+				if (unused_wads == 0 && numskips == 0 && missing == 0) log("\n");
+				log("Missing file \"" + file + "\" (usage unknown)\n\n");
 			}
 			if (write_separate_missing) {
 				if (!fmiss.is_open())
@@ -745,10 +766,10 @@ int write_map_resources(string map)
 			if (isServerFile(all_resources[i]))
 			{
 				if (print_skip)
-					cout << "Skip optional: " << all_resources[i] << "\n";
+					log("Skip optional: " + all_resources[i] + "\n");
 				numskips++;
 				if (unused_wads == 0 && numskips == 0)
-					cout << endl;
+					log("\n");
 
 				all_resources.erase(all_resources.begin() + i);
 				i--;
@@ -759,9 +780,10 @@ int write_map_resources(string map)
 	if (!just_testing && all_resources.size() == 0 || (all_resources.size() == 1 && get_ext(all_resources[0]) == "res"))
 	{
 		if (missing)
-			cout << "No .res file generated. All required files are missing!\n";
+			log("No .res file generated. All required files are missing!\n");
 		else
-			cout << "No .res file generated. Server-related files skipped.\n";
+			log("No .res file generated. Server-related files skipped.\n");
+		log_close();
 		return 0;
 	}
 
@@ -775,7 +797,7 @@ int write_map_resources(string map)
 	if (!just_testing)
 		fout.open(map_path + map + ".res", ios::out | ios::trunc);
 
-	fout << "// Created with resguy v123\n";
+	fout << "// Created with resguy v4\n";
 	fout << "// https://github.com/wootguy/resguy\n\n";
 
 
@@ -797,16 +819,20 @@ int write_map_resources(string map)
 		numEntries++;
 	}
 
+	if (missing || numskips && print_skip)
+		log("\n");
+
 	if (!just_testing)
 	{
-		cout << "Wrote " << numEntries << " entries. " << missing << " files missing. " << numskips << " files skipped.\n\n";
+		log("Wrote " + to_string(numEntries) + " entries. " + to_string(missing) + " files missing. " + to_string(numskips) + " files skipped.\n\n");
 		fout.close(); 
 	}
 	else
 	{
-		cout << "Test finished. " << numEntries << " files found. " << missing << " files missing. " << numskips << " files skipped.\n\n";
+		log("Test finished. " + to_string(numEntries) + " files found. " + to_string(missing) + " files missing. " + to_string(numskips) + " files skipped.\n\n");
 	}
 
+	log_close();
 	return 0;
 }
 
@@ -850,8 +876,8 @@ int main(int argc, char* argv[])
 				print_all_references = true;
 			if (arg == "-printskip")
 				print_skip = true;
-			if (arg == "-quiet")
-				quiet_mode = true; // TODO
+			//if (arg == "-quiet")
+			//	quiet_mode = true; // TODO
 			if (arg == "-missing")
 				include_missing = true;
 			if (arg == "-missing3")
@@ -862,6 +888,8 @@ int main(int argc, char* argv[])
 				write_separate_server_files = true;
 			if (arg == "-icase")
 				case_sensitive_mode = false;
+			if (arg == "-log")
+				log_enabled = false;
 		}
 	}
 	
@@ -874,7 +902,7 @@ int main(int argc, char* argv[])
 		load_default_content();
 		chose_opts = false;
 		map_not_found = false;
-		cout << "What do you want to generate a .res file for?\n\nExamples:\n  stadium3 = target stadium3.bsp\n  stadium* = target all maps with a name that starts with \"stadium\"\n  *        = target all maps\n\nTarget: ";
+		cout << "\nWhat do you want to generate a .res file for?\n\nExamples:\n  stadium3 = target stadium3.bsp\n  stadium* = target all maps with a name that starts with \"stadium\"\n  *        = target all maps\n\nTarget: ";
 		cin >> map;
 		system(CLEAR_COMMAND);
 

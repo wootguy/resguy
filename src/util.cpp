@@ -34,6 +34,35 @@ str_map_vector g_tracemap_opt;
 const int numContentDirs = 5;
 const char * contentDirs[numContentDirs] = {"svencoop_hd", "svencoop_addon", "svencoop_downloads", "svencoop", "valve"};
 
+ofstream log_file;
+
+void log_init(string log_file_path)
+{
+	if (log_enabled)
+	{
+		if (log_file.is_open())
+			log_file.close();
+		log_file.open(log_file_path.c_str(), ios::out | ios::trunc);
+		if (!log_file.is_open())
+			cout << "Failed to open file for writing: " << log_file_path << endl;
+	}
+}
+
+void log(string s, bool print_to_screen)
+{
+	if (log_enabled && log_file.is_open()) {
+		log_file << s;
+	}
+	if (print_to_screen)
+		std::cout << s;
+}
+
+void log_close()
+{
+	if (log_enabled && log_file.is_open())
+		log_file.close();
+}
+
 void trace_missing_file(string file, string reference, bool required)
 {
 	if (contentExists(file, false))
@@ -213,7 +242,7 @@ vector<string> parse_script_arg(string arg, string fname, string err)
 		string index = trimSpaces(arg.substr(open, close));
 		if (close == open+1 || index.length() == 0)
 		{
-			cout << err << "\t Reason: array index couldn't be parsed from '" << arg << "'\n";
+			log(err + "\t Reason: array index couldn't be parsed from '" + arg + "'\n");
 			return ret;
 		}
 		
@@ -301,7 +330,7 @@ vector<string> parse_script_arg(string arg, string fname, string err)
 			}
 		}
 
-		cout << err << "\t Reason: Failed to parse array definition for '" << arg << "\n";
+		log(err + "\t Reason: Failed to parse array definition for '" + arg + "\n");
 	}
 	else if (arg.find("(") != string::npos && arg.find("(") != string::npos)
 	{
@@ -311,7 +340,7 @@ vector<string> parse_script_arg(string arg, string fname, string err)
 		string params = trimSpaces(arg.substr(open, close));
 		if (close != open+1 && params.length())
 		{
-			cout << err << "\t Reason: function call '" << arg << "' has parameters\n";
+			log(err + "\t Reason: function call '" + arg + "' has parameters\n");
 			return ret;
 		}
 					
@@ -346,13 +375,13 @@ vector<string> parse_script_arg(string arg, string fname, string err)
 						int semi = line.find(";");
 						if (semi == string::npos)
 						{
-							cout << err << "\t Reason: Failed to parse return value for '" << arg << "' on line " << lineNum << "\n";
+							log(err + "\t Reason: Failed to parse return value for '" + arg + "' on line " + to_string(lineNum) + "\n");
 							break;
 						}
 						line = trimSpaces(line.substr(0, semi));
 						if (line.find("\"") == string::npos)
 						{
-							cout << err << "\t Reason: Failed to parse return value for '" << arg << "' on line " << lineNum << "\n";
+							log(err + "\t Reason: Failed to parse return value for '" + arg + "' on line " + to_string(lineNum) + "\n");
 							break;
 						}
 						file.close();
@@ -366,7 +395,7 @@ vector<string> parse_script_arg(string arg, string fname, string err)
 			}
 		}
 		file.close();
-		cout << err << "\t Reason: Failed to parse function definition for '" << arg << "\n";
+		log(err + "\t Reason: Failed to parse function definition for '" + arg + "\n");
 		return ret;
 	}
 	else // must be a variable
@@ -382,7 +411,7 @@ vector<string> parse_script_arg(string arg, string fname, string err)
 		}
 		if (!valid_var_name)
 		{
-			cout << err << "\t Reason: argument '" << arg << "' does not appear to be a string, variable, or function\n";
+			log(err + "\t Reason: argument '" + arg + "' does not appear to be a string, variable, or function\n");
 			return ret;
 		}
 
@@ -426,7 +455,7 @@ vector<string> parse_script_arg(string arg, string fname, string err)
 			}
 		}
 		file.close();
-		cout << err << "\t Reason: Failed to parse variable assignment for '" << arg << "\n";
+		log(err + "\t Reason: Failed to parse variable assignment for '" + arg + "\n");
 	}
 
 	return ret;
@@ -588,7 +617,7 @@ vector<string> get_script_dependencies(string fname)
 				int comma = line.find_first_of(",");
 				if (comma >= line.length()-1)
 				{
-					cout << err << "\t Reason: couldn't find all arguments on this line\n";
+					log(err + "\t Reason: couldn't find all arguments on this line\n");
 					continue;
 				}
 				string arg1 = trimSpaces(line.substr(0, comma));
@@ -599,7 +628,7 @@ vector<string> get_script_dependencies(string fname)
 					comma2 = line.find_last_of(")"); // third arg is optional
 				if (comma2 >= line.length()-1)
 				{
-					cout << err << "\t Reason: couldn't find all arguments on this line\n";
+					log(err + "\t Reason: couldn't find all arguments on this line\n");
 					continue;
 				}
 				string arg2 = trimSpaces(line.substr(0, comma2));
@@ -612,7 +641,7 @@ vector<string> get_script_dependencies(string fname)
 
 				if (ret1.size() > 1 || ret2.size() > 1)
 				{
-					cout << err << "\t Reason: array argument(s) with variable index not handled\n";
+					log(err + "\t Reason: array argument(s) with variable index not handled\n");
 					continue;
 				}
 
@@ -1060,7 +1089,7 @@ char * loadFile( string file )
 {
 	if (!fileExists(file))
 	{
-		cout << "file does not exist " << file << endl;
+		log("file does not exist " + file + "\n");
 		return NULL;
 	}
 	ifstream fin(file.c_str(), ifstream::in|ios::binary);
