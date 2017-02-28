@@ -61,6 +61,8 @@ __[filename]__ can be the name of a map ("stadium3" or "stadium3.bsp"), or a sea
 
 **-printskip** = Print content that was skipped because it was invalid, unused, optional, or listed in default_content.txt
 
+**-log** = Log output to mapname_resguy.log
+
 **-icase** = Case-insensitive mode (Linux only)
 
 &ast; I know people (me too until recently) include server files these in their .res files hoping that clients will have everything needed to host their own server, but that doesn't quite work because .cfg and .as files are blacklisted. Unless your map doesn't use a .cfg (very unlikely), you're just wasting time and disk space for every player that connects to your server.
