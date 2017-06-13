@@ -65,11 +65,11 @@ __[filename]__ can be the name of a map ("stadium3" or "stadium3.bsp"), or a sea
 
 **-icase** = Case-insensitive mode (Linux only)
 
-&ast; I know people (me too until recently) include server files these in their .res files hoping that clients will have everything needed to host their own server, but that doesn't quite work because .cfg and .as files are blacklisted. Unless your map doesn't use a .cfg (very unlikely), you're just wasting time and disk space for every player that connects to your server.
+&ast; I know people (me too until recently) include server files in their .res files hoping that clients will have everything needed to host their own server, but that doesn't quite work because .cfg and .as files are blacklisted. Unless your map doesn't use a .cfg (very unlikely), you're just wasting time and disk space for every player that connects to your server.
 
 &ast;&ast; Some missing files may be linked to yet more files, which means your .res file would still be incomplete. Only use this if you know the missing files aren't linked to anything else (sounds, sprites, WADs, and bitmaps are safe).
 
-**Note to Linux Users:**
+**Note for Linux Users:**
 The wildcard character "&ast;" will be interpreted as a file glob in the shell, which prevents resguy from working. To work around this, escape the character with a slash (e.g. "./resguy stadium\\&ast; -test") or run "set -f" before a resguy command.
 
 ## default_content.txt
