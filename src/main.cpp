@@ -732,7 +732,7 @@ int write_map_resources(string map)
 						log("\t" + to_string(left_to_print) + " more...\n");
 						break;
 					}
-					log("\t" + refs[i]);
+					log("\t" + refs[i] + "\n");
 				}
 				log("\n");
 			}

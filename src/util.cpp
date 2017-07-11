@@ -666,9 +666,12 @@ vector<string> get_script_dependencies(string fname)
 							getline (file,line);
 							lineNum++;
 
+							// strip comments
+							size_t cpos = line.find("//");
+							if (cpos != string::npos)
+								line = line.substr(0, cpos);
+
 							line = trimSpaces(line);
-							if (line.find("//") == 0)
-								continue;
 
 							line = replaceChar(line, '\t', ' ');
 							vector<string> parts = splitString(line, " ");
