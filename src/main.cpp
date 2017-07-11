@@ -790,7 +790,7 @@ int write_map_resources(string map)
 	// TODO: 
 	// ignore missing files if they're only referenced in weird keyvalues that don't make sense for the entity
 	// (this can happen when you copy paste entities and change their types)
-	// ignore files in entities that are never triggered?
+	// ignore files in entities that are never triggered? Impossible due to AS.
 	// detect file paths that are constructed at run-time? (no maps do this afaik)
 
 	ofstream fout;
@@ -850,6 +850,8 @@ string bsp_name(string fname)
 	return f;
 }
 
+string version_string = "gsrand v5 (July 2017)";
+
 int main(int argc, char* argv[])
 {
 	string map = "";
@@ -902,7 +904,7 @@ int main(int argc, char* argv[])
 		load_default_content();
 		chose_opts = false;
 		map_not_found = false;
-		cout << "\nWhat do you want to generate a .res file for?\n\nExamples:\n  stadium3 = target stadium3.bsp\n  stadium* = target all maps with a name that starts with \"stadium\"\n  *        = target all maps\n\nTarget: ";
+		cout << version_string << "\n\nWhat do you want to generate a .res file for?\n\nExamples:\n  stadium3 = target stadium3.bsp\n  stadium* = target all maps with a name that starts with \"stadium\"\n  *        = target all maps\n\nTarget: ";
 		cin >> map;
 		system(CLEAR_COMMAND);
 
