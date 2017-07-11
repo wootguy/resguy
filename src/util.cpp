@@ -1047,7 +1047,7 @@ vector<string> getSubdirs( string path )
 	else 
 	{
 		if (FindFileData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY && 
-			(FindFileData.cFileName, ".") && 
+			strcasecmp(FindFileData.cFileName, ".") &&
 			strcasecmp(FindFileData.cFileName, "..") )
 			results.push_back(FindFileData.cFileName);
 
