@@ -33,7 +33,7 @@ Sven Co-op uses FMOD which supports a large variety of audio formats. These are 
 
 # Usage:
 
-Place resguy and default_content.txt into a content folder (e.g. svencoop, svencoop_addon, or something you made) and click to run it. This will start an interactive mode where you can select maps and options.
+Place resguy and resguy_default_content.txt into a content folder (e.g. svencoop, svencoop_addon, or something you made) and click to run it. This will start an interactive mode where you can select maps and options.
 
 Maps will be searched for in the "maps" folder in the same location as the program, but also in the other content directories if something isn't found.
 
@@ -59,7 +59,7 @@ __[filename]__ can be the name of a map ("stadium3" or "stadium3.bsp"), or a sea
 
 **-allrefs** = List all references for missing files (normally clipped to 3)
 
-**-printskip** = Print content that was skipped because it was invalid, unused, optional, or listed in default_content.txt
+**-printskip** = Log content that was skipped because it was invalid, unused, optional, or listed in resguy_default_content.txt
 
 **-log** = Log output to mapname_resguy.log
 
@@ -72,7 +72,7 @@ __[filename]__ can be the name of a map ("stadium3" or "stadium3.bsp"), or a sea
 **Note for Linux Users:**
 The wildcard character "&ast;" will be interpreted as a file glob in the shell, which prevents resguy from working. To work around this, escape the character with a slash (e.g. "./resguy stadium\\&ast; -test") or run "set -f" before a resguy command.
 
-## default_content.txt
+## resguy_default_content.txt
 
 This lists all content that is included with a fresh install of Sven Co-op. Maps should exclude these files from their map package, and this list should be updated every time the game updates.*
 
@@ -82,7 +82,7 @@ __resguy -gend__
 
 Maps will need to be repackaged if they rely on default content that was removed from the game.
 
-If for some reason you want to include default content in your .res file, delete default_content.txt.
+If for some reason you want to include default content in your .res file, delete resguy_default_content.txt.
 
 &ast;The goal of this file is to prevent people from overwriting default content with their own crap. If you're including default files just to future-proof your map package, there's still a chance that the game will update those files. At that point, you're distributing old versions of files and possibly breaking the game for people.
 
