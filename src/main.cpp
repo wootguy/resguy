@@ -83,7 +83,7 @@ void load_default_content()
 
 	bool parsingTexNames = false;
 	string wad_name;
-	string default_content_path = "default_content.txt";
+	string default_content_path = "resguy_default_content.txt";
 	fileExists(default_content_path, true); // cheack caps
 
 	ifstream myfile(default_content_path);
@@ -128,7 +128,7 @@ void load_default_content()
 	else
 	{
 		system(CLEAR_COMMAND);
-		cout << "WARNING:\ndefault_content.txt is missing! Files from the base game may be included.\n\n";
+		cout << "WARNING:\nresguy_default_content.txt is missing! Files from the base game may be included.\n\n";
 	}
 }
 
@@ -166,7 +166,7 @@ void generate_default_content_file()
 	sort( all_files.begin(), all_files.end(), stringCompare );
 
 	ofstream fout;
-	fout.open("default_content.txt", ios::out | ios::trunc);
+	fout.open("resguy_default_content.txt", ios::out | ios::trunc);
 
 	fout << "[DEFAULT FILES]\n";
 	for (int i = 0; i < all_files.size(); i++)
