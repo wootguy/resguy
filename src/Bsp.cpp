@@ -82,10 +82,12 @@ vector<string> Bsp::get_resources()
 				vals.push_back(val);
 			}
 
-
 			int iext = val.find_last_of(".");
-			if (iext == string::npos || iext == val.length()-1)
-				continue;
+			if (!(cname == "weapon_custom" && key == "sprite_directory"))
+			{
+				if (iext == string::npos || iext == val.length()-1)
+					continue;
+			}
 
 			iext++;
 
@@ -143,6 +145,7 @@ vector<string> Bsp::get_resources()
 			}
 			else if (cname == "weapon_custom" && key == "sprite_directory")
 			{
+				// Note: Code duplicated in util.cpp
 				string hud_file = "sprites/" + val + "/" + ents[i]->keyvalues["weapon_name"] + ".txt";
 				trace_missing_file(hud_file, ent_trace, true);
 				push_unique(server_files, hud_file);
@@ -162,9 +165,12 @@ vector<string> Bsp::get_resources()
 							getline (file,line);
 							lineNum++;
 
+							// strip comments
+							size_t cpos = line.find("//");
+							if (cpos != string::npos)
+								line = line.substr(0, cpos);
+
 							line = trimSpaces(line);
-							if (line.find("//") == 0)
-								continue;
 
 							line = replaceChar(line, '\t', ' ');
 							vector<string> parts = splitString(line, " ");
