@@ -107,7 +107,26 @@ vector<string> Mdl::get_resources()
 	{
 		string t_path = model_path + name + "t.mdl";
 		string t_path2 = t_path;
-		push_unique(resources, t_path);
+		
+		// Textures aren't needed if this model has no triangles
+		bool isEmptyModel = true;
+		mstudiobodyparts_t bod;
+		fin.seekg(mdlHead.bodypartindex);
+		fin.read((char*)&bod, sizeof(mstudiobodyparts_t));
+		for (int i = 0; i < bod.nummodels; i++)
+		{
+			mstudiomodel_t mod;
+			fin.seekg(bod.modelindex + i*sizeof(mstudiomodel_t));
+			fin.read((char*)&mod, sizeof(mstudiomodel_t));
+			if (mod.nummesh != 0)
+			{
+				isEmptyModel = false;
+				break;
+			}
+		}
+		
+		if (!isEmptyModel)
+			push_unique(resources, t_path);
 	}
 
 
