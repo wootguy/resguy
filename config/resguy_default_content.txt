@@ -829,6 +829,7 @@ halflife.wad
 jailbreak2.wad
 jp_dev.wad
 jp_security.wad
+judgement.wad
 kk1.wad
 kk2.wad
 last.wad
@@ -854,7 +855,6 @@ logos/gun1.bmp
 logos/lambda.bmp
 logos/omnomnom.bmp
 logos/radioactive.bmp
-logos/remapped.bmp
 logos/skull.bmp
 logos/smiley.bmp
 logos/splatt.bmp
@@ -1120,6 +1120,7 @@ manual/images/maps/hplanet.jpg
 manual/images/maps/incoming.jpg
 manual/images/maps/infested.jpg
 manual/images/maps/intruder.jpg
+manual/images/maps/judgement.jpg
 manual/images/maps/last4.jpg
 manual/images/maps/mommamesa.jpg
 manual/images/maps/osprey.jpg
@@ -1139,6 +1140,7 @@ manual/images/maps/svencoop1.jpg
 manual/images/maps/tf_original.jpg
 manual/images/maps/they_hunger_ep1.jpg
 manual/images/maps/they_hunger_ep2.jpg
+manual/images/maps/they_hunger_ep3.jpg
 manual/images/maps/toadsnatch.jpg
 manual/images/maps/toonrun.jpg
 manual/images/maps/yabma.jpg
@@ -1353,6 +1355,11 @@ maps/infested_skl.cfg
 maps/intruder.bsp
 maps/intruder.cfg
 maps/intruder_motd.txt
+maps/judgement.bsp
+maps/judgement.cfg
+maps/judgement.res
+maps/judgement_credits.txt
+maps/judgement_motd.txt
 maps/last.bsp
 maps/last.cfg
 maps/last2.bsp
@@ -2304,6 +2311,8 @@ models/intro_torch.mdl
 models/islave.mdl
 models/islave_gibs1.mdl
 models/islavef.mdl
+models/judgement/bighound.mdl
+models/judgement/snowball.mdl
 models/key.mdl
 models/keyT.mdl
 models/kingheadcrab.mdl
@@ -2615,7 +2624,6 @@ models/player/obi09/obi09.mdl
 models/player/obi09/obi09.txt
 models/player/otis/otis.bmp
 models/player/otis/otis.mdl
-models/player/remapped.bmp
 models/player/rgrunt/rgrunt.bmp
 models/player/rgrunt/rgrunt.mdl
 models/player/robo/robo.bmp
@@ -6208,6 +6216,8 @@ sound/items/suitchargeno1.wav
 sound/items/suitchargeok1.wav
 sound/items/weapondrop1.wav
 sound/items/weapondrop2.wav
+sound/judgement/crossingthechasm2.mp3
+sound/judgement/wholesomeactivities.wav
 sound/kingpin/kingpin_alert1.wav
 sound/kingpin/kingpin_alert2.wav
 sound/kingpin/kingpin_alert3.wav
@@ -6235,7 +6245,6 @@ sound/leech/leech_alert2.wav
 sound/leech/leech_bite1.wav
 sound/leech/leech_bite2.wav
 sound/leech/leech_bite3.wav
-sound/libbz2-1.0.2.dll
 sound/materials.txt
 sound/minigun/hw_shoot1.wav
 sound/misc/bbcover.wav
@@ -14062,6 +14071,21 @@ jp_light2a_ice
 {vb_glowsign1
 vb_glowsign1gl1
 {vb_glowsign1g1
+
+[judgement.wad]
+pillarsalt
+oldframe01
+oldframe02-2
+oldframe02-3
+oldframe03
+oldframe02-1
+fancyframe02-1
+fancyframe02-2
+fancyframe03
+fancyframe02-3
+fancyframe01
+fancyframe03b
+fancyframe02b
 
 [kk1.wad]
 TILETEXTURE_FLO
