@@ -467,6 +467,12 @@ vector<string> get_script_dependencies(string fname)
 
 	string folder = "scripts/maps/";
 
+	if (toLowerCase(fname).find("weapon_custom.as") != string::npos)
+	{
+		// ignore this script. The resources will be found in the weapon_custom map entities
+		return resources;
+	}
+
 	int idir = fname.find_last_of("/\\");
 	if (idir != string::npos && idir > folder.length())
 		folder = fname.substr(0, idir) + '/';
@@ -649,6 +655,7 @@ vector<string> get_script_dependencies(string fname)
 				arg1 = ret1[0];
 				arg2 = ret2[0];
 
+				// Note: code duplicated in Bsp.cpp (weapon_custom)
 				string hud_file = "sprites/" + arg2 + "/" + arg1 + ".txt";
 				trace_missing_file(hud_file, trace, true);
 				push_unique(resources, hud_file);
