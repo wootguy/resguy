@@ -851,7 +851,7 @@ string bsp_name(string fname)
 	return f;
 }
 
-string version_string = "resguy v5 (July 2017)";
+string version_string = "resguy v5 (July 20th 2017)";
 
 int main(int argc, char* argv[])
 {
