@@ -340,7 +340,8 @@ vector<string> get_cfg_resources(string map)
 			if (line.find("map_script") == 0)
 			{
 				string val = trimSpaces(line.substr(line.find("map_script")+strlen("map_script")));
-				string map_script = normalize_path("scripts/maps/" + val + ".as");
+				bool needsExt = toLowerCase(val).find(".as") != val.length() - 3;
+				string map_script = normalize_path("scripts/maps/" + val + (needsExt ? ".as" : ""));
 				map_script.erase(std::remove(map_script.begin(), map_script.end(), '\"'), map_script.end());
 				
 				trace_missing_file(map_script, cfg, true);

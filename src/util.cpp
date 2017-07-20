@@ -526,6 +526,7 @@ vector<string> get_script_dependencies(string fname)
 			
 			if (line.find("#include") == 0) 
 			{
+				// .as extension is optional in cfg file, but required to be ommitted in #include statements
 				string include = normalize_path(folder + readQuote(line) + ".as");
 				push_unique(resources, include);
 				insert_unique(get_script_dependencies(include), resources);
