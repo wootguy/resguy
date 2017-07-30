@@ -63,6 +63,8 @@ bool chose_opts = false;
 string target_maps = "";
 bool map_not_found = false;
 
+string version_string = "resguy v5 (July 30th 2017)";
+
 bool stringCompare( const string &left, const string &right )
 {
 	int sz = left.size() > right.size() ? left.size() : right.size();
@@ -778,7 +780,7 @@ int write_map_resources(string map)
 		}
 	}
 
-	if (!just_testing && all_resources.size() == 0 || (all_resources.size() == 1 && get_ext(all_resources[0]) == "res"))
+	if ((!just_testing && all_resources.size() == 0) || (all_resources.size() == 1 && get_ext(all_resources[0]) == "res"))
 	{
 		if (missing)
 			log("No .res file generated. All required files are missing!\n");
@@ -798,7 +800,7 @@ int write_map_resources(string map)
 	if (!just_testing)
 		fout.open(map_path + map + ".res", ios::out | ios::trunc);
 
-	fout << "// Created with resguy v4\n";
+	fout << "// Created with " << version_string << endl;
 	fout << "// https://github.com/wootguy/resguy\n\n";
 
 
@@ -820,7 +822,7 @@ int write_map_resources(string map)
 		numEntries++;
 	}
 
-	if (missing || numskips && print_skip)
+	if (missing || (numskips && print_skip))
 		log("\n");
 
 	if (!just_testing)
@@ -850,8 +852,6 @@ string bsp_name(string fname)
 
 	return f;
 }
-
-string version_string = "resguy v5 (July 20th 2017)";
 
 int main(int argc, char* argv[])
 {
