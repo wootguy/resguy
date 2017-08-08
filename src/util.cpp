@@ -76,15 +76,19 @@ void trace_missing_file(string file, string reference, bool required)
 uint64 getSystemTime()
 {
     #if defined(WIN32) || defined(_WIN32)
-	LARGE_INTEGER fq, li;
-	QueryPerformanceFrequency(&fq);
-	QueryPerformanceCounter(&li);
-
-	double freq = (double)fq.QuadPart;
-	double time = (double)li.QuadPart*1000.0*1000.0;
-	return (uint64)(time/freq);
+	static LARGE_INTEGER s_frequency;
+    static BOOL s_use_qpc = QueryPerformanceFrequency(&s_frequency);
+    if (s_use_qpc) {
+        LARGE_INTEGER now;
+        QueryPerformanceCounter(&now);
+        return (1000LL * now.QuadPart) / s_frequency.QuadPart;
+    } else {
+        return GetTickCount();
+    }
     #else
-    return time(NULL);
+    timespec t, res;
+	clock_gettime(CLOCK_MONOTONIC_RAW, &t);
+	return t.tv_sec*1000 + t.tv_nsec/1000000;
     #endif
 }
 
@@ -332,7 +336,7 @@ vector<string> parse_script_arg(string arg, string fname, string err)
 
 		log(err + "\t Reason: Failed to parse array definition for '" + arg + "\n");
 	}
-	else if (arg.find("(") != string::npos && arg.find("(") != string::npos)
+	else if (arg.find("(") != string::npos && arg.find(")") != string::npos)
 	{
 		// Uh oh. It's a function
 		int open = arg.find("(");
