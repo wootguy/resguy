@@ -75,7 +75,7 @@ string toLowerCase(string str);
 	file - absolute path to the file (Ex: "C:\Project\thing.png")
 	fixPath - Update file param if the incorrect case was used (Linux only)
 */
-bool fileExists(string& file, bool fix_path=false);
+bool fileExists(string& file, bool fix_path=false, string from_path=".", int from_skip=0);
 
 // searches all content folders (current dir + ../svencoop + ../svencoop_downloads + ../svencoop_hd etc.)
 // file is set to the first path where the file is found
