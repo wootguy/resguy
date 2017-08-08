@@ -63,7 +63,7 @@ bool chose_opts = false;
 string target_maps = "";
 bool map_not_found = false;
 
-string version_string = "resguy v5 (July 30th 2017)";
+string version_string = "resguy v5 (August 2017)";
 
 bool stringCompare( const string &left, const string &right )
 {
