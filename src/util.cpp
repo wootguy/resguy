@@ -770,17 +770,8 @@ string toLowerCase(string str)
 	return str;
 }
 
-bool fileExists(string& file, bool fix_path)
+bool fileExists(string& file, bool fix_path, string from_path, int from_skip)
 {
-	/*
-	if (FILE *f = fopen(file.c_str(), "r")) {
-		fclose(f);
-		return true;
-	} else {
-		return false;
-	}
-	*/
-
 	if (FILE *f = fopen(file.c_str(), "r")) {
 		fclose(f);
 		return true;
@@ -801,29 +792,21 @@ bool fileExists(string& file, bool fix_path)
 		path = file.substr(0, file.find_last_of("/"));
 		vector<string> dirs = splitString(path, "/");
 		path = ".";
-		for (int i = 0; i < dirs.size(); i++)
+		if (from_skip)
+			path = from_path;
+
+		if (from_skip < dirs.size())
 		{
-			// try exact match
-			string targetDir = path + "/" + dirs[i];
-			DIR *dir = opendir(targetDir.c_str());
-			if (dir)
-			{
-				path += "/" + dirs[i];
-				closedir(dir);
-				continue;
-			}
-			
-			// check other capitalizations
-			dir = opendir(path.c_str());
+			// open first dir in path
+			DIR * dir = opendir(path.c_str());
 			if (!dir)
 				return false; // shouldn't ever happen
 
-			string lowerDir = toLowerCase(dirs[i]);
-			bool found = false;
-			while(true)
+			// search all dirs that are a case-insensitive match for the next dir in the path
+			string lowerDir = toLowerCase(dirs[from_skip]);
+			while (true)
 			{
 				dirent *entry = readdir(dir);
-		
 				if(!entry)
 					break;
 		
@@ -831,18 +814,15 @@ bool fileExists(string& file, bool fix_path)
 					continue;
 		
 				string name = string(entry->d_name);
-				string lowerName = toLowerCase(name);
-		
-				if (lowerName.compare(lowerDir) == 0)
+				if (toLowerCase(name).compare(lowerDir) == 0 && 
+					fileExists(file, fix_path, path + "/" + name, from_skip+1))
 				{
-					path += "/" + name;
-					found = true;
-					break;
+					closedir(dir);
+					return true;
 				}
 			}
 			closedir(dir);
-			if (!found)
-				return false; // containing folder doesn't exist
+			return false; // next dir in path doesn't exist
 		}
 	}
 
@@ -860,19 +840,15 @@ bool fileExists(string& file, bool fix_path)
 	while(true)
 	{
 		dirent *entry = readdir(dir);
-		
-		if(!entry)
+		if (!entry)
 			break;
-		
-		if(entry->d_type == DT_DIR)
+
+		if (entry->d_type == DT_DIR)
 			continue;
 		
 		string name = string(entry->d_name);
-		string lowerName = toLowerCase(name);
-		
-		if (lowerName.compare(lowerFile) == 0)
+		if (toLowerCase(name).compare(lowerFile) == 0)
 		{
-			
 			if (fix_path)
 			{
 				string oldFile = file;
@@ -886,7 +862,6 @@ bool fileExists(string& file, bool fix_path)
 			break;
 		}
 	}
-	
 	closedir(dir);
 	return found;
 #endif
