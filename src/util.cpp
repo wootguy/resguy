@@ -465,17 +465,14 @@ vector<string> parse_script_arg(string arg, string fname, string err)
 	return ret;
 }
 
-vector<string> get_script_dependencies(string fname)
+vector<string> get_script_dependencies(string fname, vector<string>& searchedScripts)
 {
 	vector<string> resources;
 
 	string folder = "scripts/maps/";
 
-	if (toLowerCase(fname).find("weapon_custom.as") != string::npos)
-	{
-		// ignore this script. The resources will be found in the weapon_custom map entities
-		return resources;
-	}
+	// ignore sounds/models in this script. They're false positives.
+	bool isWeaponCustom = toLowerCase(fname).find("weapon_custom.as") != string::npos;
 
 	int idir = fname.find_last_of("/\\");
 	if (idir != string::npos && idir > folder.length())
@@ -538,12 +535,15 @@ vector<string> get_script_dependencies(string fname)
 			{
 				// .as extension is optional in cfg file, but required to be ommitted in #include statements
 				string include = normalize_path(folder + readQuote(line) + ".as");
-				push_unique(resources, include);
-				insert_unique(get_script_dependencies(include), resources);
+				if (push_unique(searchedScripts, include))
+				{
+					push_unique(resources, include);
+					insert_unique(get_script_dependencies(include, searchedScripts), resources);
+				}
 			}
 
 			// look for string literals
-			{
+			if (!isWeaponCustom) {
 				string s = line;
 				vector<string> values;
 				while (s.length())
@@ -621,7 +621,7 @@ vector<string> get_script_dependencies(string fname)
 			}
 
 			// try to parse out custom weapon sprite files
-			if (line.find("g_ItemRegistry.RegisterWeapon(") != string::npos)
+			if (!isWeaponCustom && line.find("g_ItemRegistry.RegisterWeapon(") != string::npos)
 			{
 				string err = "ERROR: Failed to parse custom weapon definition in " + fname + " (line " + to_string(lineNum) + ")\n";
 				line = line.substr(line.find("g_ItemRegistry.RegisterWeapon(") + string("g_ItemRegistry.RegisterWeapon(").length());
@@ -754,10 +754,14 @@ string normalize_path(string s)
 	return s;
 }
 
-void push_unique(vector<string>& list, string val)
+bool push_unique(vector<string>& list, string val)
 {
 	if (is_unique(list, val))
+	{
 		list.push_back(val);
+		return true;
+	}
+	return false;
 }
 
 bool is_unique(vector<string>& list, string val)
