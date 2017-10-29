@@ -104,5 +104,5 @@ make
 ```
 md build; cd build
 cmake ..
-msbuild resguy.sln /p:Configuration=Release
+cmake --build . --config Release
 ```
