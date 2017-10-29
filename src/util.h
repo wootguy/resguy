@@ -57,13 +57,13 @@ vector<string> get_replacement_file_resources(string fname);
 vector<string> get_sentence_file_resources(string fname);
 
 // parses script for includes of other scripts
-vector<string> get_script_dependencies(string fname);
+vector<string> get_script_dependencies(string fname, vector<string>& searchedScripts);
 
 // removes '..' from relative paths and replaces all \ slashes with /
 string normalize_path(string s);
 
 // pushes a string into the vector only if it's not already in the list (case insensitive)
-void push_unique(vector<string>& list, string val);
+bool push_unique(vector<string>& list, string val);
 
 // check if val is in the list (case insensitive)
 bool is_unique(vector<string>& list, string val);

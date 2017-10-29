@@ -350,7 +350,8 @@ vector<string> get_cfg_resources(string map)
 				push_unique(server_files, map_script);
 				push_unique(cfg_res, map_script);
 
-				vector<string> scripts = get_script_dependencies(map_script);
+				vector<string> searchedScripts;
+				vector<string> scripts = get_script_dependencies(map_script, searchedScripts);
 				for (int i = 0; i < scripts.size(); i++)
 				{
 					bool isScript = get_ext(scripts[i]) == "as";
