@@ -102,7 +102,7 @@ make
 2. Download and extract the source somewhere
 3. Open a command prompt in the source folder (one level above "src") and run these commands:
 ```
-md build; cd build
+md build & cd build
 cmake ..
 cmake --build . --config Release
 ```
