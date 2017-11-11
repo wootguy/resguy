@@ -795,13 +795,30 @@ bool fileExists(string& file, bool fix_path, string from_path, int from_skip)
 	if (case_sensitive_mode)
 		return false;
 
+	// shorten relative paths
+	string safe_file = file;
+	size_t iup = safe_file.find("/../");
+	while (iup != string::npos)
+	{
+		string before = safe_file.substr(0, iup);
+		string after = safe_file.substr(iup + 3);
+		size_t iprev = before.find_last_of("/");
+		if (iprev == string::npos)
+			before = "";
+		else
+			before = before.substr(0, iprev);
+		
+		safe_file = before + after;
+		iup = safe_file.find("/../");
+	}
+	
 	// check each folder in the path for correct capitilization
 	string path = ".";
-	string filename = file;
-	if (file.find_first_of("/") != string::npos)
+	string filename = safe_file;
+	if (safe_file.find_first_of("/") != string::npos)
 	{
-		filename = file.substr(file.find_last_of("/")+1);
-		path = file.substr(0, file.find_last_of("/"));
+		filename = safe_file.substr(safe_file.find_last_of("/")+1);
+		path = safe_file.substr(0, safe_file.find_last_of("/"));
 		vector<string> dirs = splitString(path, "/");
 		path = ".";
 		if (from_skip)
@@ -863,7 +880,7 @@ bool fileExists(string& file, bool fix_path, string from_path, int from_skip)
 		{
 			if (fix_path)
 			{
-				string oldFile = file;
+				string oldFile = safe_file;
 				if (path.length() > 1 || path[0] != '.')
 					file = path + '/' + name;
 				else
