@@ -605,7 +605,11 @@ vector<string> get_script_dependencies(string fname, vector<string>& searchedScr
 					}
 					else
 					{
-						val = normalize_path("sound/" + val);
+						// "sound/" only needed if this is PrecacheSound. Hopefully people aren't
+						// writing wrapper functions for precaching or else this won't work
+						string prefix = line.find("PrecacheGeneric") == string::npos ? "sound/" : "";
+
+						val = normalize_path(prefix + val);
 						for (int k = 0; k < NUM_SOUND_EXTS; k++)
 						{
 							if (ext == g_valid_exts[k])
