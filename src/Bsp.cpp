@@ -321,7 +321,7 @@ vector<string> Bsp::get_resources()
 			push_unique(resources, "gfx/env/" + sky + "up.tga");
 		}
 
-		// parse replacement files
+		// parse replacement files (Note: These can also be set in the map CFG)
 		string global_model_list = worldSpawn->keyvalues["globalmodellist"];
 		if (global_model_list.length())
 		{			
