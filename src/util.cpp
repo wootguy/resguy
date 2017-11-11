@@ -714,6 +714,7 @@ vector<string> get_script_dependencies(string fname, vector<string>& searchedScr
 
 string normalize_path(string s)
 {
+	s = replaceChar(s, '\!', '\\'); // not sure why this a thing, but plenty of maps use this ("models\!barney.mdl")
 	s = replaceChar(s, '\\', '/');
 	vector<string> parts = splitString(s, "/");
 	int depth = 0;
