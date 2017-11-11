@@ -233,11 +233,12 @@ vector<string> get_cfg_resources(string map)
 
 			line = replaceChar(line, '\t', ' ' );
 
+			// Note: These can also be set in worldspawn entity
 			if (line.find("globalmodellist") == 0)
 			{
 				string val = trimSpaces(line.substr(line.find("globalmodellist")+strlen("globalmodellist")));
+				val.erase(std::remove(val.begin(), val.end(), '\"'), val.end());
 				string global_model_list = normalize_path("models/" + map + "/" + val);
-				global_model_list.erase(std::remove(global_model_list.begin(), global_model_list.end(), '\"'), global_model_list.end());
 
 				trace_missing_file(global_model_list, cfg, true);
 				push_unique(server_files, global_model_list);
@@ -265,8 +266,8 @@ vector<string> get_cfg_resources(string map)
 			if (line.find("globalsoundlist") == 0)
 			{
 				string val = trimSpaces(line.substr(line.find("globalsoundlist")+strlen("globalsoundlist")));
+				val.erase(std::remove(val.begin(), val.end(), '\"'), val.end());
 				string global_sound_list = normalize_path("sound/" + map + "/" + val);
-				global_sound_list.erase(std::remove(global_sound_list.begin(), global_sound_list.end(), '\"'), global_sound_list.end());
 
 				trace_missing_file(global_sound_list, cfg, true);
 				push_unique(server_files, global_sound_list);
