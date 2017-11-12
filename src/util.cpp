@@ -712,9 +712,20 @@ vector<string> get_script_dependencies(string fname, vector<string>& searchedScr
 	return resources;
 }
 
+string replaceString(string subject, string search, string replace) 
+{
+	size_t pos = 0;
+	while ((pos = subject.find(search, pos)) != string::npos) 
+	{
+		 subject.replace(pos, search.length(), replace);
+		 pos += replace.length();
+	}
+	return subject;
+}
+
 string normalize_path(string s)
 {
-	s = replaceChar(s, '\!', '\\'); // not sure why this a thing, but plenty of maps use this ("models\!barney.mdl")
+	s = replaceString(s, "\\!", "\\"); // not sure why this a thing, but plenty of maps use this ("models\\!barney.mdl")
 	s = replaceChar(s, '\\', '/');
 	vector<string> parts = splitString(s, "/");
 	int depth = 0;

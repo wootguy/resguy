@@ -67,7 +67,7 @@ vector<string> Bsp::get_resources()
 		for (hashmap::iterator it = ents[i]->keyvalues.begin(); it != ents[i]->keyvalues.end(); ++it)
 		{
 			string key = toLowerCase(it->first);
-			string val = replaceChar(it->second, '\\', '/');
+			string val = it->second;
 
 			// support for weapon_custom
 			vector<string> vals = splitString(val, ";");
@@ -123,7 +123,7 @@ vector<string> Bsp::get_resources()
 			{
 				// make sure file has an extension
 				int lastdot = val.find_last_of(".");
-				int lastslash = val.find_last_of("/");
+				int lastslash = val.find_last_of("/\\");
 				if (lastdot == string::npos || (lastslash != string::npos && lastdot < lastslash))
 					continue;
 
@@ -146,7 +146,7 @@ vector<string> Bsp::get_resources()
 			else if (cname == "weapon_custom" && key == "sprite_directory")
 			{
 				// Note: Code duplicated in util.cpp
-				string hud_file = "sprites/" + val + "/" + ents[i]->keyvalues["weapon_name"] + ".txt";
+				string hud_file = normalize_path("sprites/" + val + "/" + ents[i]->keyvalues["weapon_name"] + ".txt");
 				trace_missing_file(hud_file, ent_trace, true);
 				push_unique(server_files, hud_file);
 				push_unique(resources, hud_file);
