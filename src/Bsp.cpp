@@ -406,12 +406,9 @@ vector<string> Bsp::get_resources()
 			trace_missing_file(sentences_file, trace, true);
 			push_unique(server_files, sentences_file);
 			push_unique(resources, sentences_file);
-			vector<string> sounds = get_sentence_file_resources(sentences_file);
+			vector<string> sounds = get_sentence_file_resources(sentences_file, trace + " --> " + sentences_file);
 			for (int i = 0; i < sounds.size(); i++)
-			{
-				trace_missing_file(sounds[i], trace + " --> " + sentences_file, true);
 				push_unique(resources, sounds[i]);
-			}
 		}
 
 		string materials_file = worldSpawn->keyvalues["materials_file"];
