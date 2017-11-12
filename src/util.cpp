@@ -740,20 +740,23 @@ string replaceString(string subject, string search, string replace)
 	return subject;
 }
 
-string normalize_path(string s)
+string normalize_path(string s, bool is_keyvalue)
 {
 	if (s.size() == 0)
 		return s;
 
-	// A lot of mappers tried to use '\' as a path separator not realizing that HL interprets that as
-	// an escape sequence. HL only implements the '\n' escape sequence. Everything else is
-	// converted to a '\', so the following character is deleted. To counteract this, mappers add a 
-	// random character after the '\' (usually "!" or "*"). This is why there are so many paths
-	// that look broken but aren't (e.g. "models\!barney.mdl")
-	s = replaceString(s, "\\n", "\n");
-	for (int i = 0; i < (int)s.size()-1; i++)
-		if (s[i] == '\\')
-			s.erase(i+1, 1);
+	if (is_keyvalue)
+	{
+		// A lot of mappers tried to use '\' as a path separator not realizing that HL interprets that as
+		// an escape sequence. HL only implements the '\n' escape sequence. Everything else is
+		// converted to a '\', so the following character is deleted. To counteract this, mappers add a 
+		// random character after the '\' (usually "!" or "*"). This is why there are so many paths
+		// that look broken but aren't (e.g. "models\!barney.mdl")
+		s = replaceString(s, "\\n", "\n");
+		for (int i = 0; i < (int)s.size()-1; i++)
+			if (s[i] == '\\')
+				s.erase(i+1, 1);
+	}
 
 	s = replaceChar(s, '\\', '/');
 	vector<string> parts = splitString(s, "/");

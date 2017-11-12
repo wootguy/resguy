@@ -101,7 +101,7 @@ vector<string> Bsp::get_resources()
 
 			if (ext == "mdl") 
 			{
-				string model_path = normalize_path(val);
+				string model_path = normalize_path(val, true);
 
 				if (is_unique(resources, model_path))
 				{
@@ -121,7 +121,7 @@ vector<string> Bsp::get_resources()
 			}
 			else if (ext == "spr")
 			{
-				string spr = normalize_path(val);
+				string spr = normalize_path(val, true);
 				trace_missing_file(spr, ent_trace, true);
 				push_unique(resources, spr);
 			}
@@ -133,7 +133,7 @@ vector<string> Bsp::get_resources()
 				if (lastdot == string::npos || (lastslash != string::npos && lastdot < lastslash))
 					continue;
 
-				string res = normalize_path("sound/" + name + "/" + val);
+				string res = normalize_path("sound/" + name + "/" + val, true);
 				if (is_unique(resources, res))
 				{
 					trace_missing_file(res, ent_trace, true);
@@ -154,7 +154,7 @@ vector<string> Bsp::get_resources()
 			{
 				// Note: Code duplicated in util.cpp
 				string wep_name = isWeaponCustom ? ents[i]->keyvalues["weapon_name"] : cname;
-				string hud_file = normalize_path("sprites/" + val + "/" + wep_name + ".txt");
+				string hud_file = normalize_path("sprites/" + val + "/" + wep_name + ".txt", true);
 				trace_missing_file(hud_file, ent_trace, true);
 				push_unique(server_files, hud_file);
 				push_unique(resources, hud_file);
@@ -209,7 +209,7 @@ vector<string> Bsp::get_resources()
 							if (isSentence && sval[0] == '+') // means string is a file path, not a sentence
 								sval = sval.substr(1);
 
-							string snd = normalize_path(prefix + sval);
+							string snd = normalize_path(prefix + sval, true);
 							trace_missing_file(snd, ent_trace, true);
 							push_unique(resources, snd);
 							break;
@@ -333,7 +333,7 @@ vector<string> Bsp::get_resources()
 		string global_model_list = worldSpawn->keyvalues["globalmodellist"];
 		if (global_model_list.length())
 		{			
-			global_model_list = normalize_path("models/" + name + "/" + global_model_list);
+			global_model_list = normalize_path("models/" + name + "/" + global_model_list, true);
 
 			trace_missing_file(global_model_list, trace, true);
 			push_unique(server_files, global_model_list);
@@ -361,7 +361,7 @@ vector<string> Bsp::get_resources()
 		string global_sound_list = worldSpawn->keyvalues["globalsoundlist"];
 		if (global_sound_list.length())
 		{			
-			global_sound_list = normalize_path("sound/" + name + "/" + global_sound_list);
+			global_sound_list = normalize_path("sound/" + name + "/" + global_sound_list, true);
 
 			trace_missing_file(global_sound_list, trace, true);
 			push_unique(server_files, global_sound_list);
@@ -404,7 +404,7 @@ vector<string> Bsp::get_resources()
 			}
 		}
 
-		string sentences_file = normalize_path(worldSpawn->keyvalues["sentence_file"]);
+		string sentences_file = normalize_path(worldSpawn->keyvalues["sentence_file"], true);
 		if (sentences_file.length())
 		{
 			trace_missing_file(sentences_file, trace, true);
@@ -418,7 +418,7 @@ vector<string> Bsp::get_resources()
 		string materials_file = worldSpawn->keyvalues["materials_file"];
 		if (materials_file.length()) 
 		{
-			materials_file = normalize_path("sound/" + name + "/" + materials_file);
+			materials_file = normalize_path("sound/" + name + "/" + materials_file, true);
 			trace_missing_file(materials_file, trace, true);
 			push_unique(server_files, materials_file);
 			push_unique(resources, materials_file);
