@@ -504,7 +504,6 @@ int write_map_resources(string map)
 	Bsp bsp(map);
 
 	if (!bsp.valid) {
-		cout << "ERROR: " << map << ".bsp not found\n";
 		map_not_found = true;
 		return 2;
 	}
