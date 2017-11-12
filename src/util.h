@@ -41,6 +41,9 @@ void trace_missing_file(string file, string reference, bool required);
 
 string replaceChar(string s, char c, char with);
 
+// replace all insteances of 'search' with 'replace'
+string replaceString(string subject, string search, string replace);
+
 void trace_missing_file(str_map_vector trace_type, string file, string reference);
 
 // prints to screen and logs to file
