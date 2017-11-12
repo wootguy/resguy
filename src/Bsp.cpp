@@ -82,9 +82,11 @@ vector<string> Bsp::get_resources()
 				vals.push_back(val);
 			}
 
+			bool isWeaponCustom = cname == "weapon_custom";
 			int iext = val.find_last_of(".");
-			if (!(cname == "weapon_custom" && key == "sprite_directory"))
+			if (!(isWeaponCustom && key == "sprite_directory" || key == "customspritedir"))
 			{
+				// no extension in value - probably not a file path (unless it's a HUD sprite folder name!)
 				if (iext == string::npos || iext == val.length()-1)
 					continue;
 			}
@@ -143,10 +145,12 @@ vector<string> Bsp::get_resources()
 					}
 				}
 			}
-			else if (cname == "weapon_custom" && key == "sprite_directory")
+			else if (isWeaponCustom && key == "sprite_directory" || 
+					 cname.find("weapon_") == 0 && key == "customspritedir")
 			{
 				// Note: Code duplicated in util.cpp
-				string hud_file = normalize_path("sprites/" + val + "/" + ents[i]->keyvalues["weapon_name"] + ".txt");
+				string wep_name = isWeaponCustom ? ents[i]->keyvalues["weapon_name"] : cname;
+				string hud_file = normalize_path("sprites/" + val + "/" + wep_name + ".txt");
 				trace_missing_file(hud_file, ent_trace, true);
 				push_unique(server_files, hud_file);
 				push_unique(resources, hud_file);
