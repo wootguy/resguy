@@ -84,7 +84,7 @@ vector<string> Bsp::get_resources()
 
 			bool isWeaponCustom = cname == "weapon_custom";
 			int iext = val.find_last_of(".");
-			if (!(isWeaponCustom && key == "sprite_directory" || key == "customspritedir"))
+			if (!((isWeaponCustom && key == "sprite_directory") || key == "customspritedir"))
 			{
 				// no extension in value - probably not a file path (unless it's a HUD sprite folder name!)
 				if (iext == string::npos || iext == val.length()-1)
@@ -145,8 +145,8 @@ vector<string> Bsp::get_resources()
 					}
 				}
 			}
-			else if (isWeaponCustom && key == "sprite_directory" || 
-					 cname.find("weapon_") == 0 && key == "customspritedir")
+			else if ((isWeaponCustom && key == "sprite_directory") || 
+					 (cname.find("weapon_") == 0 && key == "customspritedir"))
 			{
 				// Note: Code duplicated in util.cpp
 				string wep_name = isWeaponCustom ? ents[i]->keyvalues["weapon_name"] : cname;
