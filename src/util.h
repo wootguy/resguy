@@ -57,7 +57,7 @@ void log_close();
 // parses a sound/model replacement file and returns all unique resources on the right-hand side
 vector<string> get_replacement_file_resources(string fname);
 
-vector<string> get_sentence_file_resources(string fname);
+vector<string> get_sentence_file_resources(string fname, string trace_path);
 
 // parses script for includes of other scripts
 vector<string> get_script_dependencies(string fname, vector<string>& searchedScripts);

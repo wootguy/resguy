@@ -322,12 +322,9 @@ vector<string> get_cfg_resources(string map)
 				trace_missing_file(sentences_file, cfg, true);
 				push_unique(server_files, sentences_file);
 				push_unique(cfg_res, sentences_file);
-				vector<string> sounds = get_sentence_file_resources(sentences_file);
+				vector<string> sounds = get_sentence_file_resources(sentences_file, cfg + " --> " + sentences_file);
 				for (int i = 0; i < sounds.size(); i++)
-				{
-					trace_missing_file(sounds[i], cfg + " --> " + sentences_file, true);
 					push_unique(cfg_res, sounds[i]);
-				}
 			}
 
 			if (line.find("materials_file") == 0)

@@ -137,9 +137,10 @@ vector<string> get_replacement_file_resources(string fname)
 	return resources;
 }
 
-vector<string> get_sentence_file_resources(string fname)
+vector<string> get_sentence_file_resources(string fname, string trace_path)
 {
 	vector<string> resources;
+	str_map_vector references;
 
 	contentExists(fname, true); // fix caps
 
@@ -152,10 +153,10 @@ vector<string> get_sentence_file_resources(string fname)
 			getline (myfile,line);
 
 			line = trimSpaces(line);
-			if (line.find("//") == 0)
+			if (line.find("//") == 0 || line.size() == 0)
 				continue;
 
-			line = replaceChar(line, '\t', ' ' );
+			line = replaceChar(line, '\t', ' ');
 
 			// strip volume/pitch settings (e.g. "hgrunt/grenade!(v90 120)")
 			// Note: The game does this too - so filenames with parens in them won't work ( "alert(test)" becomes "alert" )
@@ -167,6 +168,8 @@ vector<string> get_sentence_file_resources(string fname)
 				parenStart = line.find("(");
 				parenEnd = line.find(")", parenStart);
 			}
+
+			string sentence_name = line.substr(0, line.find_first_of(" "));
 
 			// strip commas + periods
 			// Note: The game doesn't allow file extensions (alert.wav = alert + _period + wav)
@@ -215,12 +218,26 @@ vector<string> get_sentence_file_resources(string fname)
 					snd = normalize_path("sound/" + folder + snd + ".wav");
 				}
 				push_unique(resources, snd);
+				push_unique(references[snd], sentence_name);
 			}
 		}
 	}
 	//else
 	//	cout << "Failed to open: " << fname << endl; // not needed - file will be flagged as missing later
 	myfile.close();
+
+	for (int i = 0; i < resources.size(); i++)
+	{
+		vector<string> refs = references[resources[i]];
+		string sentence_name;
+		if (refs.size() > 0)
+		{
+			sentence_name = " --> " + refs[0];
+			if (refs.size() > 1)
+				sentence_name += " (and " + to_string(refs.size()-1) + " others)";
+		}
+		trace_missing_file(resources[i], trace_path + sentence_name, true);
+	}
 
 	return resources;
 }
