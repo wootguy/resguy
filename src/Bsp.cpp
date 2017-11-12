@@ -3,6 +3,7 @@
 #include <algorithm>
 #include "globals.h"
 #include "Mdl.h"
+#include <string.h>
 
 const int NUM_LUMPS_TO_LOAD = 2;
 int lumps_to_load[NUM_LUMPS_TO_LOAD] = {LUMP_ENTITIES, LUMP_TEXTURES};
@@ -15,12 +16,12 @@ Bsp::Bsp(std::string mapname)
 	bool exists = true;
 	string fname = "maps/" + mapname + ".bsp";
 	if (!contentExists(fname, true)) {
-		cout << "ERROR: " << fname << " not found\n";
+		log("ERROR: " + fname + " not found\n");
 		return;
 	}
 
 	if (!load_lumps(fname)) {
-		cout << fname << " is not a valid BSP file\n";
+		log(fname + " is not a valid BSP file\n");
 		return;
 	}
 
