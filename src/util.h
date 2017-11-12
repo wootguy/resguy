@@ -63,7 +63,7 @@ vector<string> get_sentence_file_resources(string fname, string trace_path);
 vector<string> get_script_dependencies(string fname, vector<string>& searchedScripts);
 
 // removes '..' from relative paths and replaces all \ slashes with /
-string normalize_path(string s);
+string normalize_path(string s, bool is_keyvalue=false);
 
 // pushes a string into the vector only if it's not already in the list (case insensitive)
 bool push_unique(vector<string>& list, string val);
