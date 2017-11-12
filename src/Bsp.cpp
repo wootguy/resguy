@@ -15,10 +15,12 @@ Bsp::Bsp(std::string mapname)
 	bool exists = true;
 	string fname = "maps/" + mapname + ".bsp";
 	if (!contentExists(fname, true)) {
+		cout << "ERROR: " << fname << " not found\n";
 		return;
 	}
 
 	if (!load_lumps(fname)) {
+		cout << fname << " is not a valid BSP file\n";
 		return;
 	}
 
@@ -32,7 +34,8 @@ Bsp::~Bsp()
 		return;
 	 
 	for (int i = 0; i < NUM_LUMPS_TO_LOAD; i++)
-		delete [] lumps[lumps_to_load[i]];
+		if (lumps[lumps_to_load[i]])
+			delete [] lumps[lumps_to_load[i]];
 	delete [] lumps;
 
 	for (int i = 0; i < ents.size(); i++)
@@ -458,27 +461,34 @@ bool Bsp::load_lumps(string fname)
 	bool valid = true;
 
 	// Read all BSP Data
-	ifstream fin(fname, ios::binary);
+	ifstream fin(fname, ios::binary | ios::ate);
+	int size = fin.tellg();
+	fin.seekg(0, fin.beg);
+
+	if (size < sizeof(BSPHEADER) + sizeof(BSPLUMP)*HEADER_LUMPS)
+		return false;
 
 	fin.read((char*)&header.nVersion, sizeof(int));
-
+	
 	for (int i = 0; i < HEADER_LUMPS; i++)
-	{
 		fin.read((char*)&header.lump[i], sizeof(BSPLUMP));
-	}
+
 	lumps = new byte*[HEADER_LUMPS];
+	memset(lumps, 0, sizeof(byte*)*HEADER_LUMPS);
 	
 	for (int i = 0; i < NUM_LUMPS_TO_LOAD; i++)
 	{
 		int idx = lumps_to_load[i];
-		lumps[idx] = new byte[header.lump[idx].nLength];
 		fin.seekg(header.lump[idx].nOffset);
 		if (fin.eof()) {
 			log("FAILED TO READ BSP LUMP " + to_string(idx) + "\n");
 			valid = false;
 		}
 		else
+		{
+			lumps[idx] = new byte[header.lump[idx].nLength];
 			fin.read((char*)lumps[idx], header.lump[idx].nLength);
+		}
 	}	
 	
 	fin.close();
