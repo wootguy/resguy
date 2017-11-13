@@ -18,6 +18,7 @@
 #define CLEAR_COMMAND "cls"
 #else
 #include <termios.h>
+#include <unistd.h>
 #define CLEAR_COMMAND "clear"
 
 char _getch()
@@ -869,7 +870,7 @@ bool archive_output(string archive_name)
 	string archiver = "";
 
 	// Attempt to find the 7z or 7za program
-	#if defined(WIN32) || defined(_WIN32)		
+	#if defined(WIN32) || defined(_WIN32)
 		string suppress_output = " > nul 2>&1";
 		TCHAR x64[MAX_PATH];
 		TCHAR x86[MAX_PATH];
@@ -958,6 +959,7 @@ bool archive_output(string archive_name)
 	if (make_archive)
 	{
 		vector<string> temp_files; // files that are temporarily copied to the current dir
+		vector<string> temp_dirs; // directories that are temporarily created in the current dir
 		string list_file = "resguy_7zip_file_list.txt";
 		ofstream fout;
 		fout.open (list_file, ios::out | ios::trunc);
@@ -975,8 +977,23 @@ bool archive_output(string archive_name)
 						
 				if (new_path.find_first_of("/") != string::npos)
 				{
-					string dir = new_path.substr(0, new_path.find_last_of("/")); 
-					string cmd = "mkdir \"" + dir + "\"" + suppress_output;
+					string dir = new_path.substr(0, new_path.find_last_of("/"));
+					string tdir = dir;
+					while (tdir.length())
+					{
+						if (dirExists(tdir))
+							break;
+						push_unique(temp_dirs, tdir);
+						size_t idir = tdir.find_last_of("/");
+						if (idir == string::npos)
+							break;
+						tdir = tdir.substr(0, idir);
+					}
+					#if defined(WIN32) || defined(_WIN32)	
+						string cmd = "mkdir \"" + dir + "\"" + suppress_output;
+					#else
+						string cmd = "mkdir -p \"" + dir + "\"" + suppress_output;
+					#endif
 					system(cmd.c_str());
 				}
 
@@ -1027,6 +1044,14 @@ bool archive_output(string archive_name)
 		remove("resguy_7zip_file_list.txt");
 		for (int i = 0; i < temp_files.size(); i++)
 			remove(temp_files[i].c_str());
+		for (int i = 0; i < temp_dirs.size(); i++)
+		{
+			#if defined(WIN32) || defined(_WIN32)
+				RemoveDirectory(temp_dirs[i].c_str());
+			#else
+				rmdir(temp_dirs[i].c_str());
+			#endif
+		}
 		cout << "Done\n";
 
 		cin.sync();
