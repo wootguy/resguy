@@ -15,7 +15,7 @@ Bsp::Bsp(std::string mapname)
 
 	bool exists = true;
 	string fname = "maps/" + mapname + ".bsp";
-	if (!contentExists(fname, true)) {
+	if (!contentExists(fname, true, full_path)) {
 		log("ERROR: " + fname + " not found\n");
 		return;
 	}

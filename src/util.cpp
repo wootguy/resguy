@@ -924,16 +924,21 @@ bool fileExists(string& file, bool fix_path, string from_path, int from_skip)
 #endif
 }
 
-bool contentExists(string& file, bool fix_path)
+bool contentExists(string& file, bool fix_path, string& full_path)
 {
 	if (fileExists(file, fix_path))
+	{
+		full_path = file;
 		return true;
+	}
 
 	for (int i = 0; i < numContentDirs; i++)
 	{
 		string f = "../" + string(contentDirs[i]) + "/" + file;
 		if (fileExists(f, fix_path)) {
-			if (fix_path) file = f;
+			if (fix_path) 
+				file = f;
+			full_path = f;
 			return true;
 		}
 	}

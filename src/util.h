@@ -36,6 +36,8 @@ typedef unordered_map< string, vector<string> > str_map_vector;
 extern str_map_vector g_tracemap_req;
 extern str_map_vector g_tracemap_opt;
 
+static string dummy;
+
 // if file is missing, log where it was used
 void trace_missing_file(string file, string reference, bool required);
 
@@ -82,7 +84,7 @@ bool fileExists(string& file, bool fix_path=false, string from_path=".", int fro
 
 // searches all content folders (current dir + ../svencoop + ../svencoop_downloads + ../svencoop_hd etc.)
 // file is set to the first path where the file is found
-bool contentExists(string& file, bool fix_path);
+bool contentExists(string& file, bool fix_path, string& full_path=dummy);
 
 // given a filename without an extension, search in a sound dir (for all content dirs) for any files with the same name
 // (used with custom sentences since extensions are omitted but are important)
