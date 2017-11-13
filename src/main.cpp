@@ -672,11 +672,12 @@ int write_map_resources(string map)
 	int missing = 0;
 	for (int i = 0; i < all_resources.size(); i++)
 	{
+		bool is_res = get_ext(all_resources[i]) == "res";
 		string tmp_path = all_resources[i];
 		string full_path;
-		if (!contentExists(tmp_path, true, full_path) && get_ext(all_resources[i]) != "res")
+		if (!contentExists(tmp_path, true, full_path) && !is_res)
 			missing++;
-		else
+		else if (!is_res)
 			push_unique(archive_files, full_path);
 	}
 
@@ -847,6 +848,8 @@ int write_map_resources(string map)
 		log("Test finished. " + to_string(numEntries) + " files found. " + to_string(missing) + " files missing. " + to_string(numskips) + " files skipped.\n\n");
 	}
 
+	push_unique(archive_files, map_path + map + ".res");
+
 	log_close();
 	return 0;
 }
@@ -896,6 +899,9 @@ bool archive_output(string archive_name)
 		else if (system(("7za" + suppress_output).c_str()) == 0)
 			archiver = "7za";
 	#endif
+
+	if (res_files_generated == 0)
+		return false;
 
 	if (archiver.length() == 0)
 	{
