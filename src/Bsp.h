@@ -52,6 +52,7 @@ class Bsp
 public:
 	std::string name;
 	std::string path;
+	std::string full_path;
 	BSPHEADER header;
 	byte ** lumps;
 	bool valid;

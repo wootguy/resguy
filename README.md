@@ -6,6 +6,7 @@ Resguy is similar to RESgen and FLRGen, but can find all content that Sven Co-op
 - Models/sprites/sounds used in map entities
 - Models/sprites/sounds used in map scripts (error prone)
 - HUD files and sprites used by custom weapons defined in map scripts (even more error prone)
+- HUD files and sprites set in the "CustomSpriteDir" key for weapon_* entities
 - External texture models and animation models (e.g. scientistT.mdl + scientist01.mdl)
 - Custom muzzle flash configs and sprites used in model animations (event 5005)
 - Sounds played in model animations (events 5004/1004/1008)
@@ -64,6 +65,12 @@ __[filename]__ can be the name of a map ("stadium3" or "stadium3.bsp"), or a sea
 **-log** = Log output to mapname_resguy.log
 
 **-icase** = Case-insensitive mode (Linux only)
+
+**-7z[0-9]** = Create a 7-Zip archive from the selected maps. The compression level is optional (default = 9).
+
+**-zip[0-1]** = Create a Zip archive from the selected maps. The compression level is optional (default = 1).
+
+([7-Zip](http://www.7-zip.org/download.html) is required for **-7z** and **-zip**. If you have a 64-bit version for Windows then you'll need the 64-bit version of Resguy.)
 
 &ast; I know people (me too until recently) include server files in their .res files hoping that clients will have everything needed to host their own server, but that doesn't quite work because .cfg and .as files are blacklisted. Unless your map doesn't use a .cfg (very unlikely), you're just wasting time and disk space for every player that connects to your server.
 

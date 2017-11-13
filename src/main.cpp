@@ -13,6 +13,8 @@
 
 #if defined(WIN32) || defined(_WIN32)
 #include <conio.h>
+#include <Windows.h>
+#include <Shlobj.h>
 #define CLEAR_COMMAND "cls"
 #else
 #include <termios.h>
@@ -43,8 +45,10 @@ using namespace std;
 vector<string> default_content;
 str_map_vector default_wads; // texture names in the default wads
 vector<string> server_files;
+vector<string> archive_files;
 int unused_wads = 0;
 int max_reference_prints = 3;
+int res_files_generated = 0;
 
 bool just_testing = false;
 bool print_all_references = false;
@@ -56,6 +60,7 @@ bool write_separate_missing = false;
 bool include_missing = false;
 bool case_sensitive_mode = true;
 bool log_enabled = false;
+string archive_arg;
 
 // interactive mode vars
 bool interactive = false;
@@ -63,7 +68,7 @@ bool chose_opts = false;
 string target_maps = "";
 bool map_not_found = false;
 
-string version_string = "resguy v5 (August 2017)";
+string version_string = "resguy v6 (August 2017)";
 
 bool stringCompare( const string &left, const string &right )
 {
@@ -79,7 +84,7 @@ bool stringCompare( const string &left, const string &right )
 
 void load_default_content()
 {
-	cout << "Loading default content...";
+	cout << "Loading default content...\n";
 	default_content.clear();
 	default_wads.clear();
 
@@ -442,9 +447,9 @@ int ask_options()
 		cout << " 7. [" + string(opts[6] ? "X" : " ") +  "]  Write missing files to a separate .res3 file (-missing3)\n";
 		cout << " 8. [" + string(opts[7] ? "X" : " ") +  "]  Log output to mapname_resguy.log (-log)\n";
 #ifndef WIN32
-		cout << "\n 9. [" + string(opts[8] ? "X" : " ") +  "]  Disable case sensitivity (-icase)\n";
+		cout << " 9. [" + string(opts[8] ? "X" : " ") +  "]  Disable case sensitivity (-icase)\n";
 #endif
-		cout << "\nPress B to go back or Q to quit";
+		cout << "\nPress B to go back or Q to quit\n";
 
 		char choice = _getch();
 		if (choice == '1') opts[0] = !opts[0];
@@ -517,8 +522,11 @@ int write_map_resources(string map)
 		chose_opts = true;
 	}
 
+	res_files_generated++;
+
 	string map_path = bsp.path;
 	log_init(map_path + map + "_resguy.log");
+	archive_files.push_back(bsp.full_path);
 
 	string opt_string;
 	opt_string += just_testing ? " -test" : "";
@@ -530,10 +538,11 @@ int write_map_resources(string map)
 	opt_string += write_separate_missing ? " -missing3" : "";
 	opt_string += log_enabled ? " -log" : "";
 	opt_string += !case_sensitive_mode ? " -icase" : "";
+	opt_string += archive_arg.length() ? " " + archive_arg : "";
 
 	log("Options Used:" + opt_string + "\n\n", false);
 
-	log("Generating .res file for " + bsp.path + map + "\n");
+	log("Generating .res file for " + bsp.path + map + ".bsp\n");
 
 	//cout << "Parsing " << bsp.name << ".bsp...\n\n";
 
@@ -658,12 +667,16 @@ int write_map_resources(string map)
 		}
 	}
 
-	// count missing files
+	// count missing files and create list of archive files
 	int missing = 0;
 	for (int i = 0; i < all_resources.size(); i++)
 	{
-		if (!contentExists(all_resources[i], false) && get_ext(all_resources[i]) != "res")
+		string tmp_path = all_resources[i];
+		string full_path;
+		if (!contentExists(tmp_path, true, full_path) && get_ext(all_resources[i]) != "res")
 			missing++;
+		else
+			push_unique(archive_files, full_path);
 	}
 
 	// write server files 
@@ -820,7 +833,7 @@ int write_map_resources(string map)
 		numEntries++;
 	}
 
-	if (missing || (numskips && print_skip))
+	if (!missing || (numskips && print_skip))
 		log("\n");
 
 	if (!just_testing)
@@ -849,6 +862,199 @@ string bsp_name(string fname)
 		f = f.substr(0, f.length()-4);
 
 	return f;
+}
+
+bool archive_output(string archive_name)
+{
+	string archiver = "";
+
+	// Attempt to find the 7z or 7za program
+	#if defined(WIN32) || defined(_WIN32)		
+		string suppress_output = " > nul 2>&1";
+		TCHAR x64[MAX_PATH];
+		TCHAR x86[MAX_PATH];
+		SHGetSpecialFolderPath(0, x64, CSIDL_PROGRAM_FILES, FALSE ); 
+		SHGetSpecialFolderPath(0, x86, CSIDL_PROGRAM_FILESX86, FALSE ); 
+		string program_files = x64;
+		string program_files_x86 = x86;
+		string zip64 = "\"" + program_files + "\\7-Zip\\7z.exe\"";
+		string zip32 = "\"" + program_files_x86 + "\\7-Zip\\7z.exe\"";
+
+		if (system("7z > nul 2>&1") == 0)
+			archiver = "7z";
+		else if (system(string(zip64 + suppress_output).c_str()) == 0)
+			archiver = zip64;
+		else if (system(string(zip32 + suppress_output).c_str()) == 0)
+			archiver = zip32;
+		else if (system("7za > nul 2>&1") == 0)
+			archiver = "7za";
+	#else
+		string suppress_output = " > /dev/null 2> /dev/null";
+		if (system(("7z" + suppress_output).c_str()) == 0)
+			archiver = "7z";
+		else if (system(("7za" + suppress_output).c_str()) == 0)
+			archiver = "7za";
+	#endif
+
+	if (archiver.length() == 0)
+	{
+		if (!interactive)
+			cout << "7-Zip program (7z or 7za) not found. Unable to create archive.\n";
+		return false;
+	}
+
+	string level = "-mx1";
+	string ext = ".7z";
+	bool make_archive = true;
+
+	if (interactive)
+	{
+		if (res_files_generated > 1)
+			cout << "Archive these " << res_files_generated << " maps?\n\n";
+		else
+			cout << "Archive this map?\n\n";
+		cout 
+		<< " 1. 7-Zip  Ultra   (best compression)\n"
+		<< " 2. 7-Zip  Normal\n"
+		<< " 3. Zip    Fast\n"
+		<< " 4. Zip    Store   (no compression)\n"
+		<< "\n 0. No\n\n";
+	
+		while (true)
+		{
+			char choice = _getch();
+			if (choice == '0') make_archive = false;
+			else if (choice == '1') {level = "-mx9 -mmt -m0=lzma2 -t7z"; ext = ".7z";}
+			else if (choice == '2') {level = "-mx5 -mmt -m0=lzma2 -t7z"; ext = ".7z";}
+			else if (choice == '3') {level = "-mx1 -mmt -tzip"; ext = ".zip";}
+			else if (choice == '4') {level = "-mx0 -mmt -tzip"; ext = ".zip";}
+			else continue;
+			break;
+		}
+	}
+	else if (archive_arg.length() > 0)
+	{
+		if (archive_arg.find("-7z") == 0) {
+			string ilevel = "9";
+			if (archive_arg.length() > 3)
+				ilevel = to_string(atoi(archive_arg.substr(3,1).c_str()));
+			level = "-mx" + ilevel + " -mmt -m0=lzma2 -t7z";
+			ext = ".7z";
+		}
+		else if (archive_arg.find("-zip") == 0)
+		{
+			string ilevel = "1";
+			if (archive_arg.length() > 4)
+				ilevel = to_string(atoi(archive_arg.substr(4,1).c_str()));
+			level = "-mx" + ilevel + " -mmt -tzip";
+			ext = ".zip";
+		}
+		else
+			return false;
+	}
+	else
+		return false;
+
+	if (make_archive)
+	{
+		vector<string> temp_files; // files that are temporarily copied to the current dir
+		string list_file = "resguy_7zip_file_list.txt";
+		ofstream fout;
+		fout.open (list_file, ios::out | ios::trunc);
+		for (int i = 0; i < archive_files.size(); i++)
+		{
+			string path = archive_files[i];
+
+			if (path[0] == '.' && path[1] == '.' && path[2] == '/')
+			{
+				// Any file path beginning with "../" is placed in the root of the archive.
+				// The only way to correct this is to move those files into the current dir.
+				// The list file doesn't allow you to choose where files go in the archive :<
+				string new_path = path.substr(3);
+				new_path = new_path.substr(new_path.find_first_of("/")+1);
+						
+				if (new_path.find_first_of("/") != string::npos)
+				{
+					string dir = new_path.substr(0, new_path.find_last_of("/")); 
+					string cmd = "mkdir \"" + dir + "\"" + suppress_output;
+					system(cmd.c_str());
+				}
+
+				#if defined(WIN32) || defined(_WIN32)	
+					string old_path_win = replaceChar(path, '/', '\\');
+					string new_path_win = replaceChar(new_path, '/', '\\');
+					string cmd = "copy /Y \"" + old_path_win + "\" \"" + new_path_win + "\"" + suppress_output;
+				#else
+					string old_path_win = path;
+					string new_path_win = new_path;
+					string cmd = "cp \"" + old_path_win + "\" \"" + new_path_win + "\"" + suppress_output;
+				#endif
+				
+				//cout << cmd << endl;
+				cout << "Copying " << old_path_win << "\n";
+				if (system(cmd.c_str()) == 0)
+				{
+					temp_files.push_back(new_path_win);
+					path = new_path;
+				}
+			}
+			#if defined(WIN32) || defined(_WIN32)	
+				std::replace( path.begin(), path.end(), '/', '\\'); // convert to windows slashes
+			#endif
+			fout << path << endl;
+		}
+		fout.close();
+
+		// choose a unique archive name
+		string base_name = archive_name;
+		for (int i = 2; i < 100; i++)
+		{
+			string fname = archive_name + ext;
+			if (fileExists(fname))
+				archive_name = base_name + "_" + to_string(i);
+			else
+				break;
+		}
+		string fname = archive_name + ext;
+		if (fileExists(fname))
+			remove((archive_name + ext).c_str());
+
+		string cmd = archiver + " a " + level + " " + archive_name + " @" + list_file;
+		bool success = system(cmd.c_str()) == 0;
+		cout << endl;
+
+		cout << "Cleaning up... ";
+		remove("resguy_7zip_file_list.txt");
+		for (int i = 0; i < temp_files.size(); i++)
+			remove(temp_files[i].c_str());
+		cout << "Done\n";
+
+		cin.sync();
+
+		if (!success)
+		{
+			cout << endl;
+			if (interactive)
+			{
+				cout << "Archive creation failed! Try a different option.\n\n";
+				return archive_output(archive_name);
+			}
+			else
+			{
+				cout << "Archive creation failed!\n\n";
+				return true;
+			}
+		}
+
+		cout << "\n\nCreated archive: " + archive_name + ext + "\n";
+
+		if (interactive)
+		{
+			cout << "\nPress any key to continue...\n";
+			_getch();
+		}
+	}
+	return true;
 }
 
 int main(int argc, char* argv[])
@@ -890,7 +1096,9 @@ int main(int argc, char* argv[])
 			if (arg == "-icase")
 				case_sensitive_mode = false;
 			if (arg == "-log")
-				log_enabled = false;
+				log_enabled = true;
+			if (arg.find("-7z") == 0 || arg.find("-zip") == 0)
+				archive_arg = arg.substr(0,4);
 		}
 	}
 	
@@ -985,8 +1193,7 @@ int main(int argc, char* argv[])
 					#endif
 				}
 
-				if (i != files.size()-1)
-					cout << seperator;
+				cout << seperator;
 			}
 		}
 	}
@@ -1006,12 +1213,17 @@ int main(int argc, char* argv[])
 	system("pause");
 #endif
 
+	if (!archive_output(all_maps ? "resguy_output" : "resguy_" + map) && interactive)
+	{
+		cout << "Press any key to continue...\n";
+		_getch();
+	}
 
 	if (interactive)
 	{
-		cout << endl;
-		cout << "Press any key to continue...\n";
-		_getch();
+		archive_files.clear();
+		res_files_generated = 0;
+
 		if (map_not_found)
 			goto ask_for_map;
 		else
@@ -1019,8 +1231,6 @@ int main(int argc, char* argv[])
 			chose_opts = false;
 			goto ask_for_opts;
 		}
-
-			
 	}
 
 	return ret;
