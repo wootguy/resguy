@@ -8,6 +8,8 @@
 #include <string.h>
 #include "Mdl.h"
 #include "globals.h"
+#include <sys/types.h>
+#include <sys/stat.h>
 
 #if defined(WIN32) || defined(_WIN32)
 #include <Windows.h>
@@ -16,8 +18,6 @@
 #else
 #include <time.h>
 #include <unistd.h>
-#include <sys/types.h>
-#include <sys/stat.h>
 #include <dirent.h>
 #define GetCurrentDir getcwd
 
@@ -1225,13 +1225,11 @@ vector<string> splitString( string str, const char * delimitters )
 
 bool dirExists(const string& path)
 {
-    #if defined(WIN32) || defined(_WIN32)
-	DWORD dwAttrib = GetFileAttributesA(path.c_str());
+	struct stat info;
 
-	return (dwAttrib != INVALID_FILE_ATTRIBUTES && 
-			(dwAttrib & FILE_ATTRIBUTE_DIRECTORY));
-    #else
-    struct stat data;
-    return stat(path.c_str(), &data) == 0 && S_ISDIR(data.st_mode);
-    #endif
+	if (stat(path.c_str(), &info) != 0)
+		return false;
+	else if(info.st_mode & S_IFDIR)
+		return true;
+	return false;
 }

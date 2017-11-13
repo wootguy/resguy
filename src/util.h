@@ -75,6 +75,9 @@ bool is_unique(vector<string>& list, string val);
 
 string toLowerCase(string str);
 
+// case-sensitive
+bool dirExists(const string& path);
+
 /*
 	Returns true if the file could be found.
 	file - absolute path to the file (Ex: "C:\Project\thing.png")
@@ -117,7 +120,5 @@ void insert_unique(const vector<string>& insert, vector<string>& insert_into);
 vector<string> splitString( string str, const char * delimitters);
 
 string trimSpaces(string str); // remove spaces at the beginning and end of the string
-
-bool dirExists(const string& path);
 
 uint64 getSystemTime();
