@@ -646,9 +646,10 @@ int write_map_resources(string map)
 	for (int i = 0; i < all_resources.size(); i++)
 	{
 		bool ext_ok = false;
+		string ext = get_ext(all_resources[i]);
 		for (int k = 0; k < NUM_VALID_EXTS; k++)
 		{
-			if (get_ext(all_resources[i]) == g_valid_exts[k])
+			if (ext == g_valid_exts[k])
 			{
 				ext_ok = true;
 				break;
@@ -678,6 +679,15 @@ int write_map_resources(string map)
 		if (!contentExists(tmp_path, true, full_path) && !is_res)
 			missing++;
 		else if (!is_res)
+			push_unique(archive_files, full_path);
+	}
+
+	// add server files to archive list
+	for (int i = 0; i < server_files.size(); i++)
+	{
+		string tmp_path = server_files[i];
+		string full_path;
+		if (contentExists(tmp_path, true, full_path))
 			push_unique(archive_files, full_path);
 	}
 
