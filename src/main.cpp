@@ -457,7 +457,11 @@ int ask_options()
 		cout << endl << target_maps << "\n\n";
 
 		cout << "Select options with number keys. Confirm with Enter:\n\n";
-		for (int i = 0; i < NUM_ARG_DEFS; i++)
+		int maxarg = NUM_ARG_DEFS;
+		#ifdef WIN32
+			maxarg--; // skip -icase
+		#endif
+		for (int i = 0; i < maxarg; i++)
 		{
 			int key = i+1 > 9 ? 0 : i+1;		
 			cout << key << ". [" << string(opts[i] ? "X" : " ") << "]  " << arg_defs[i][1] << 
