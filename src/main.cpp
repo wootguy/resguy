@@ -913,12 +913,8 @@ bool archive_output(string archive_name)
 	if (res_files_generated == 0)
 		return false;
 
-	if (archiver.length() == 0)
-	{
-		if (!interactive)
-			cout << "7-Zip program (7z or 7za) not found. Unable to create archive.\n";
+	if (archiver.length() == 0 && interactive)
 		return false;
-	}
 
 	string level = "-mx1";
 	string ext = ".7z";
@@ -968,6 +964,11 @@ bool archive_output(string archive_name)
 		}
 		else
 			return false;
+		if (!archiver.length())
+		{
+			cout << "7-Zip program (7z or 7za) not found. Unable to create archive.\n";
+			return false;
+		}
 	}
 	else
 		return false;
