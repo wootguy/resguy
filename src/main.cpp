@@ -835,12 +835,6 @@ int write_map_resources(string map)
 		return 0;
 	}
 
-	// TODO: 
-	// ignore missing files if they're only referenced in weird keyvalues that don't make sense for the entity
-	// (this can happen when you copy paste entities and change their types)
-	// ignore files in entities that are never triggered? Impossible due to AS.
-	// detect file paths that are constructed at run-time? (no maps do this afaik)
-
 	ofstream fout;
 	if (!just_testing && !series_mode)
 		fout.open(map_path + map + ".res", ios::out | ios::trunc);
@@ -936,7 +930,7 @@ bool archive_output(string archive_name)
 			archiver = "7za";
 	#endif
 
-	if (res_files_generated == 0)
+	if (res_files_generated == 0 || just_testing)
 		return false;
 
 	if (archiver.length() == 0 && interactive)
