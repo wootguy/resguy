@@ -912,11 +912,14 @@ bool archive_output(string archive_name)
 		string program_files_x86 = x86;
 		string zip64 = "\"" + program_files + "\\7-Zip\\7z.exe\"";
 		string zip32 = "\"" + program_files_x86 + "\\7-Zip\\7z.exe\"";
+		string zip64_guess = replaceString(zip64, "Program Files (x86)", "Program Files");
 
 		if (system("7z > nul 2>&1") == 0)
 			archiver = "7z";
 		else if (system(string(zip64 + suppress_output).c_str()) == 0)
 			archiver = zip64;
+		else if (system(string(zip64_guess + suppress_output).c_str()) == 0)
+			archiver = zip64_guess;
 		else if (system(string(zip32 + suppress_output).c_str()) == 0)
 			archiver = zip32;
 		else if (system("7za > nul 2>&1") == 0)
