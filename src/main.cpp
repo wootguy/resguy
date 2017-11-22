@@ -10,6 +10,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <iomanip>
 
 #if defined(WIN32) || defined(_WIN32)
 #include <conio.h>
@@ -64,6 +65,20 @@ bool case_sensitive_mode = true;
 bool log_enabled = false;
 bool series_mode = false;
 string archive_arg;
+
+const int NUM_ARG_DEFS = 10;
+char * arg_defs[NUM_ARG_DEFS][2] = {
+	{"test", "Don't write any .res files, just check for problems"},
+	{"allrefs", "List all references for missing files"},
+	{"printskip", "Print content that was skipped"},
+	{"extra", "Write server files"},
+	{"extra2", "Write server files to a separate .res2 file"},
+	{"missing", "Write missing files"},
+	{"missing3", "Write missing files to a separate .res3 file"},
+	{"series", "Write the same files into every .res file"},
+	{"log", "Log output to mapname_resguy.log"},
+	{"icase", "Disable case sensitivity"}
+};
 
 // interactive mode vars
 bool interactive = false;
@@ -442,18 +457,12 @@ int ask_options()
 		cout << endl << target_maps << "\n\n";
 
 		cout << "Select options with number keys. Confirm with Enter:\n\n";
-		cout << " 1. [" + string(opts[0] ? "X" : " ") +  "]  Don't write any .res files, just check for problems (-test)\n";
-		cout << " 2. [" + string(opts[1] ? "X" : " ") +  "]  List all references for missing files (-allrefs)\n";
-		cout << " 3. [" + string(opts[2] ? "X" : " ") +  "]  Print content that was skipped (-printskip)\n";
-		cout << " 4. [" + string(opts[3] ? "X" : " ") +  "]  Write server files (-extra)\n";
-		cout << " 5. [" + string(opts[4] ? "X" : " ") +  "]  Write server files to a separate .res2 file (-extra2)\n";
-		cout << " 6. [" + string(opts[5] ? "X" : " ") +  "]  Write missing files (-missing)\n";
-		cout << " 7. [" + string(opts[6] ? "X" : " ") +  "]  Write missing files to a separate .res3 file (-missing3)\n";
-		cout << " 8. [" + string(opts[7] ? "X" : " ") +  "]  Write the same files into every .res file (-series)\n";
-		cout << " 9. [" + string(opts[8] ? "X" : " ") +  "]  Log output to mapname_resguy.log (-log)\n";
-		#ifndef WIN32
-			cout << " 0. [" + string(opts[9] ? "X" : " ") +  "]  Disable case sensitivity (-icase)\n";
-		#endif
+		for (int i = 0; i < NUM_ARG_DEFS; i++)
+		{
+			int key = i+1 > 9 ? 0 : i+1;		
+			cout << key << ". [" << string(opts[i] ? "X" : " ") << "]  " << arg_defs[i][1] << 
+					" (-" << arg_defs[i][0] << ")\n";
+		}
 		cout << "\nPress B to go back or Q to quit\n";
 
 		char choice = _getch();
@@ -545,6 +554,7 @@ int write_map_resources(string map)
 	opt_string += write_separate_server_files ? " -extra2" : "";
 	opt_string += include_missing ? " -missing" : "";
 	opt_string += write_separate_missing ? " -missing3" : "";
+	opt_string += series_mode ? " -series" : "";
 	opt_string += log_enabled ? " -log" : "";
 	opt_string += !case_sensitive_mode ? " -icase" : "";
 	opt_string += archive_arg.length() ? " " + archive_arg : "";
@@ -1119,6 +1129,34 @@ int main(int argc, char* argv[])
 			#ifdef _DEBUG
 				system("pause");
 			#endif
+			return 0;
+		}
+		if (map == "-version" || map == "-v")
+		{
+			cout << version_string;
+			return 0;
+		}
+		if (map == "-help" || map == "-h")
+		{	
+			cout << version_string << "\n\nUsage: resguy [filename] <options>\n\n";
+			cout << "[filename] can be the name of a map (\"stadium3\" or \"stadium3.bsp\"), or a search string (\"stadium*\").\n";
+			cout << "\n<options>:\n";
+			
+			for (int i = 0; i < NUM_ARG_DEFS; i++)
+				cout << "  -" << left << setw(12) << arg_defs[i][0] << arg_defs[i][1] << endl;
+			
+			cout << "  -" << left << setw(12) << "7z[0-9]" << 
+				"Create a 7-Zip archive from the selected maps\n" << "   " << setw(12) << "" <<
+				"The compression level is optional (default = 9)" << endl;
+			cout << "  -" << left << setw(12) << "zip[0-9]" << 
+				"Create a Zip archive from the selected maps\n" << "   " << setw(12) << "" <<
+				"The compression level is optional (default = 1)" << endl;
+				
+			cout << "\nSpecial usage:\n";
+			cout << "  resguy -" << left << setw(12) << "gend" << "Generate resguy_default_content.txt\n          " << setw(12) << "" <<
+				"Place resguy in \"Sven Co-op/svencoop/\" beforehand" << endl;
+			cout << "  resguy -" << left << setw(12) << "version" << "Show program version" << endl;
+			
 			return 0;
 		}
 	}
