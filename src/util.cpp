@@ -583,8 +583,11 @@ vector<string> get_script_dependencies(string fname, vector<string>& searchedScr
 					values.push_back(val);
 
 					// handle case where the full path is broken up into separate string literals for no reason
-					string sound_val = "sound/" + val;
-					if (values.size() > 1 && !contentExists(val, false) && !contentExists(sound_val, false))
+					string tmpVal = normalize_path(val);
+					string sound_val = "sound/" + tmpVal;
+					bool valExists = !is_unique(default_content, tmpVal) || contentExists(tmpVal, false);
+					bool soundValExists = !is_unique(default_content, sound_val) || contentExists(sound_val, false);
+					if (values.size() > 1 && !valExists && !soundValExists)
 					{
 						string concatVal = "";
 						for (int i = 0; i < values.size(); i++)
@@ -592,8 +595,11 @@ vector<string> get_script_dependencies(string fname, vector<string>& searchedScr
 						if (contentExists(concatVal, false))
 						{
 							val = concatVal;
-							if (toLowerCase(concatVal).find("sound/") == 0) 
-								val = val.substr(6); // readded later
+							
+							tmpVal = normalize_path(val);
+							sound_val = "sound/" + tmpVal;
+							valExists = !is_unique(default_content, tmpVal) || contentExists(tmpVal, false);
+							soundValExists = !is_unique(default_content, sound_val) || contentExists(sound_val, false);
 						}
 					}
 
@@ -622,11 +628,12 @@ vector<string> get_script_dependencies(string fname, vector<string>& searchedScr
 					}
 					else
 					{
-						// "sound/" only needed if this is PrecacheSound. Hopefully people aren't
-						// writing wrapper functions for precaching or else this won't work
-						string prefix = line.find("PrecacheGeneric") == string::npos ? "sound/" : "";
-
-						val = normalize_path(prefix + val);
+						// probably safe to assume the script is using sounds correctly,
+						// so it's ok if the prefix is missing. Just try to find a plausible match.
+						// There will be too many false positives otherwise.
+						string valpath = soundValExists ? sound_val : val;
+						
+						val = normalize_path(valpath);
 						for (int k = 0; k < NUM_SOUND_EXTS; k++)
 						{
 							if (ext == g_valid_exts[k])
