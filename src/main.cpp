@@ -47,6 +47,7 @@ vector<string> default_content;
 str_map_vector default_wads; // texture names in the default wads
 vector<string> server_files;
 vector<string> archive_files;
+vector<string> series_client_files;
 int unused_wads = 0;
 int max_reference_prints = 3;
 int res_files_generated = 0;
@@ -61,6 +62,7 @@ bool write_separate_missing = false;
 bool include_missing = false;
 bool case_sensitive_mode = true;
 bool log_enabled = false;
+bool series_mode = false;
 string archive_arg;
 
 // interactive mode vars
@@ -69,7 +71,8 @@ bool chose_opts = false;
 string target_maps = "";
 bool map_not_found = false;
 
-string version_string = "resguy v6 (August 2017)";
+string version_string = "resguy v6 (November 2017)";
+string resguy_header = "// Created with " + version_string + "\n// https://github.com/wootguy/resguy\n\n";
 
 bool stringCompare( const string &left, const string &right )
 {
@@ -430,7 +433,7 @@ int ask_options()
 {
 	bool opts[] = {just_testing, print_all_references, print_skip, !client_files_only, 
 					   write_separate_server_files, include_missing, write_separate_missing, 
-					   log_enabled, !case_sensitive_mode};
+					   series_mode, log_enabled, !case_sensitive_mode};
 
 	while(true) 
 	{
@@ -446,10 +449,11 @@ int ask_options()
 		cout << " 5. [" + string(opts[4] ? "X" : " ") +  "]  Write server files to a separate .res2 file (-extra2)\n";
 		cout << " 6. [" + string(opts[5] ? "X" : " ") +  "]  Write missing files (-missing)\n";
 		cout << " 7. [" + string(opts[6] ? "X" : " ") +  "]  Write missing files to a separate .res3 file (-missing3)\n";
-		cout << " 8. [" + string(opts[7] ? "X" : " ") +  "]  Log output to mapname_resguy.log (-log)\n";
-#ifndef WIN32
-		cout << " 9. [" + string(opts[8] ? "X" : " ") +  "]  Disable case sensitivity (-icase)\n";
-#endif
+		cout << " 8. [" + string(opts[7] ? "X" : " ") +  "]  Write the same files into every .res file (-series)\n";
+		cout << " 9. [" + string(opts[8] ? "X" : " ") +  "]  Log output to mapname_resguy.log (-log)\n";
+		#ifndef WIN32
+			cout << " 0. [" + string(opts[9] ? "X" : " ") +  "]  Disable case sensitivity (-icase)\n";
+		#endif
 		cout << "\nPress B to go back or Q to quit\n";
 
 		char choice = _getch();
@@ -462,6 +466,7 @@ int ask_options()
 		if (choice == '7') opts[6] = !opts[6];
 		if (choice == '8') opts[7] = !opts[7];
 		if (choice == '9') opts[8] = !opts[8];
+		if (choice == '0') opts[9] = !opts[9];
 		if (choice == 'Q' || choice == 'q') return -1;
 		if (choice == 'B' || choice == 'b') return 1;
 			
@@ -475,8 +480,9 @@ int ask_options()
 	write_separate_server_files = opts[4];
 	include_missing = opts[5];
 	write_separate_missing = opts[6];
-	log_enabled = opts[7];
-	case_sensitive_mode = !opts[8];
+	series_mode = opts[7];
+	log_enabled = opts[8];
+	case_sensitive_mode = !opts[9];
 
 	system(CLEAR_COMMAND);
 	cout << endl;
@@ -528,7 +534,9 @@ int write_map_resources(string map)
 	string map_path = bsp.path;
 	log_init(map_path + map + "_resguy.log");
 	archive_files.push_back(bsp.full_path);
-
+	if (series_mode)
+		series_client_files.push_back(bsp.path + map + ".bsp");
+	
 	string opt_string;
 	opt_string += just_testing ? " -test" : "";
 	opt_string += print_all_references ? " -allrefs" : "";
@@ -820,18 +828,16 @@ int write_map_resources(string map)
 	// detect file paths that are constructed at run-time? (no maps do this afaik)
 
 	ofstream fout;
-	if (!just_testing)
+	if (!just_testing && !series_mode)
 		fout.open(map_path + map + ".res", ios::out | ios::trunc);
 
-	fout << "// Created with " << version_string << endl;
-	fout << "// https://github.com/wootguy/resguy\n\n";
-
+	fout << resguy_header;
 
 	int numEntries = 0;
 	for (int i = 0; i < all_resources.size(); i++)
 	{
 		string file = all_resources[i];
-		if (!just_testing)
+		if (!just_testing || series_mode)
 		{
 			contentExists(file, true);
 			if (file.find("..") == 0) // strip "../svencoop_downloads/" or similar
@@ -839,8 +845,10 @@ int write_map_resources(string map)
 				file = file.substr(file.find_first_of("\\/")+1);
 				file = file.substr(file.find_first_of("\\/")+1);
 			}
-
-			fout << file << endl;
+			if (series_mode)
+				push_unique(series_client_files, file);
+			else
+				fout << file << endl;
 		}
 		numEntries++;
 	}
@@ -850,7 +858,8 @@ int write_map_resources(string map)
 
 	if (!just_testing)
 	{
-		log("Wrote " + to_string(numEntries) + " entries. " + to_string(missing) + " files missing. " + to_string(numskips) + " files skipped.\n\n");
+		string action = series_mode ? "Found " : "Wrote ";
+		log(action + to_string(numEntries) + " entries. " + to_string(missing) + " files missing. " + to_string(numskips) + " files skipped.\n\n");
 		fout.close(); 
 	}
 	else
@@ -1107,9 +1116,9 @@ int main(int argc, char* argv[])
 		map = argv[1];
 		if (map == "-gend") {
 			generate_default_content_file();
-#ifdef _DEBUG
-			system("pause");
-#endif
+			#ifdef _DEBUG
+				system("pause");
+			#endif
 			return 0;
 		}
 	}
@@ -1141,6 +1150,8 @@ int main(int argc, char* argv[])
 				log_enabled = true;
 			if (arg.find("-7z") == 0 || arg.find("-zip") == 0)
 				archive_arg = arg.substr(0,4);
+			if (arg == "-series")
+				series_mode = true;
 		}
 	}
 	
@@ -1169,15 +1180,16 @@ int main(int argc, char* argv[])
 	if (bidx == map.length() - 4)
 		map = map.substr(0, map.length()-4);
 
-	bool all_maps = map.find_first_of("*") != string::npos;
+	bool search_maps = map.find_first_of("*") != string::npos;
 
 	string seperator = "- - - - - - - - - - - - - - - - - - - - - - - - - - - - - -\n\n";
 
 	ask_for_opts:
 	int ret = 0;
-	if (all_maps)
+	vector<string> files;
+	if (search_maps)
 	{
-		vector<string> files = getDirFiles("maps/", "bsp", map);
+		files = getDirFiles("maps/", "bsp", map);
 		insert_unique(getDirFiles("../svencoop_hd/maps/", "bsp", map), files);
 		insert_unique(getDirFiles("../svencoop_addons/maps/", "bsp", map), files);
 		insert_unique(getDirFiles("../svencoop_downloads/maps/", "bsp", map), files);
@@ -1242,6 +1254,7 @@ int main(int argc, char* argv[])
 	else
 	{
 		target_maps = "Generating .res file for:\n  " + map;
+		files.push_back(map);
 		int ret = write_map_resources(map);
 
 		if (ret == 1) goto ask_for_map;
@@ -1250,12 +1263,41 @@ int main(int argc, char* argv[])
 		if (ret)
 			ret = 1;
 	}
+	
+	if (series_mode && !just_testing && res_files_generated > 0)
+	{
+		cout << "Writing series .res files for " << files.size() << " maps (" << 
+				series_client_files.size() << " entries)\n\n";
+		sort( series_client_files.begin(), series_client_files.end(), stringCompare );
+		for (int i = 0; i < files.size(); i++)
+		{
+			string f = bsp_name(files[i]);
+			Bsp bsp(f);
+			if (!bsp.valid)
+				continue;
+			
+			ofstream fout;
+			fout.open(bsp.path + f + ".res", ios::out | ios::trunc);
+			fout << resguy_header;
+			for (int k = 0; k < series_client_files.size(); k++)
+			{
+				if (series_client_files[k] == bsp.path + f + ".bsp")
+					continue; // only the other bsps should be listed
+				fout << series_client_files[k] << endl;
+			}
+			fout.close();
+		}
+	}
+	else if (series_mode && just_testing)
+	{
+		cout << "Series .res files would contain " << series_client_files.size() << " entries\n\n";
+	}
 
 #ifdef _DEBUG
 	system("pause");
 #endif
 
-	if (!archive_output(all_maps ? "resguy_output" : "resguy_" + map) && interactive)
+	if (!archive_output(search_maps ? "resguy_output" : "resguy_" + map) && interactive)
 	{
 		cout << "Press any key to continue...\n";
 		_getch();
@@ -1264,6 +1306,7 @@ int main(int argc, char* argv[])
 	if (interactive)
 	{
 		archive_files.clear();
+		series_client_files.clear();
 		res_files_generated = 0;
 
 		if (map_not_found)
