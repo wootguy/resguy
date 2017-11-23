@@ -50,6 +50,10 @@ __[filename]__ can be the name of a map ("stadium3" or "stadium3.bsp"), or a sea
 
 **-test** = Don't write any .res files, just check for problems.
 
+**-allrefs** = List all references for missing files (normally clipped to 3)
+
+**-printskip** = Log content that was skipped because it was invalid, unused, optional, or listed in resguy_default_content.txt
+
 **-extra** = Write server files to .res file (not recommended&ast;)
 
 **-extra2** = Write server files to a separate .res2 file
@@ -58,9 +62,7 @@ __[filename]__ can be the name of a map ("stadium3" or "stadium3.bsp"), or a sea
 
 **-missing3** = Write missing files to a separate .res3 file
 
-**-allrefs** = List all references for missing files (normally clipped to 3)
-
-**-printskip** = Log content that was skipped because it was invalid, unused, optional, or listed in resguy_default_content.txt
+**-series** = Write the same files into every .res file (includes BSPs for other maps in the series)
 
 **-log** = Log output to mapname_resguy.log
 
