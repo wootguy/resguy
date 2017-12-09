@@ -67,7 +67,7 @@ bool series_mode = false;
 string archive_arg;
 
 const int NUM_ARG_DEFS = 10;
-char * arg_defs[NUM_ARG_DEFS][2] = {
+const char * arg_defs[NUM_ARG_DEFS][2] = {
 	{"test", "Don't write any .res files, just check for problems"},
 	{"allrefs", "List all references for missing files"},
 	{"printskip", "Print content that was skipped"},
