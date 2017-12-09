@@ -837,9 +837,12 @@ int write_map_resources(string map)
 
 	ofstream fout;
 	if (!just_testing && !series_mode)
+	{
 		fout.open(map_path + map + ".res", ios::out | ios::trunc);
-	else if (!fout.is_open())
-		cout << "Failed to open .res file for writing: " << map_path + map + ".res" << endl;
+		if (!fout.is_open())
+			cout << "Failed to open .res file for writing: " << map_path + map + ".res" << endl;
+	}
+		
 
 	fout << resguy_header;
 
