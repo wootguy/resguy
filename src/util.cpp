@@ -116,16 +116,24 @@ vector<string> get_replacement_file_resources(string fname)
 			if (line.find("//") == 0)
 				continue;
 
-			line.erase(std::remove(line.begin(), line.end(), '\"'), line.end());
+			bool badLine = false;
+			for (int q = 0; q < 3; q++)
+			{
+				int quote = line.find_first_of("\"");
+				if (quote == string::npos)
+				{
+					badLine = true;
+					break;
+				}
+				line = line.substr(quote+1);
+			}
+			if (badLine)
+				continue;
 
-			int ext1 = line.find_first_of(".");
-			if (ext1 == string::npos)
+			int quote = line.find_first_of("\"");
+			if (quote == string::npos)
 				continue;
-			line = line.substr(ext1);
-			int ext2 = line.find_first_of(" \t");
-			if (ext2 == string::npos)
-				continue;
-			line = trimSpaces(line.substr(ext2));
+			line = trimSpaces(line.substr(0, quote));
 
 			push_unique(resources, normalize_path(line));
 		}
