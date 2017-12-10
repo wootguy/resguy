@@ -115,6 +115,7 @@ vector<string> get_replacement_file_resources(string fname)
 			line = trimSpaces(line);
 			if (line.find("//") == 0)
 				continue;
+			string oldLine = line;
 
 			bool badLine = false;
 			for (int q = 0; q < 3; q++)
@@ -127,13 +128,25 @@ vector<string> get_replacement_file_resources(string fname)
 				}
 				line = line.substr(quote+1);
 			}
-			if (badLine)
-				continue;
-
 			int quote = line.find_first_of("\"");
 			if (quote == string::npos)
-				continue;
-			line = trimSpaces(line.substr(0, quote));
+				badLine = true;
+
+			if (badLine)
+			{
+				// quotes are optional (for paths without spaces)
+				// so ignore any quotes and assume the files are separated by spaces/tabs
+				// e.g. this is valid: "test.wav  "lol.wav"
+				line = oldLine;
+				line.erase(std::remove(line.begin(), line.end(), '\"'), line.end());
+				int gap = line.find_first_of(" \t");
+				if (gap == string::npos)
+					continue;
+				line = trimSpaces(line.substr(gap+1));
+				
+			}
+			else
+				line = trimSpaces(line.substr(0, quote));
 
 			push_unique(resources, normalize_path(line));
 		}
