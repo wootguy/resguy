@@ -86,7 +86,7 @@ bool chose_opts = false;
 string target_maps = "";
 bool map_not_found = false;
 
-string version_string = "resguy v6 (November 2017)";
+string version_string = "resguy v7 WIP (December 2017)";
 string resguy_header = "// Created with " + version_string + "\n// https://github.com/wootguy/resguy\n\n";
 
 bool stringCompare( const string &left, const string &right )
