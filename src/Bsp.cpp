@@ -156,7 +156,6 @@ vector<string> Bsp::get_resources()
 				string wep_name = isWeaponCustom ? ents[i]->keyvalues["weapon_name"] : cname;
 				string hud_file = normalize_path("sprites/" + val + "/" + wep_name + ".txt", true);
 				trace_missing_file(hud_file, ent_trace, true);
-				push_unique(server_files, hud_file);
 				push_unique(resources, hud_file);
 
 				string hud_path = hud_file;
