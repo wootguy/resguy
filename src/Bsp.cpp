@@ -419,7 +419,6 @@ vector<string> Bsp::get_resources()
 		{
 			materials_file = normalize_path("sound/" + name + "/" + materials_file, true);
 			trace_missing_file(materials_file, trace, true);
-			push_unique(server_files, materials_file);
 			push_unique(resources, materials_file);
 		}
 	}

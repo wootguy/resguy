@@ -86,7 +86,7 @@ bool chose_opts = false;
 string target_maps = "";
 bool map_not_found = false;
 
-string version_string = "resguy v7 WIP (December 2017)";
+string version_string = "resguy v8 WIP (August 2018)";
 string resguy_header = "// Created with " + version_string + "\n// https://github.com/wootguy/resguy\n\n";
 
 bool stringCompare( const string &left, const string &right )
@@ -357,7 +357,6 @@ vector<string> get_cfg_resources(string map)
 				string materials_file = normalize_path("sound/" + map + "/" + val);
 				materials_file.erase(std::remove(materials_file.begin(), materials_file.end(), '\"'), materials_file.end());
 				trace_missing_file(materials_file, cfg, true);
-				push_unique(server_files, materials_file);
 				push_unique(cfg_res, materials_file);
 			}
 
