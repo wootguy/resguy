@@ -49,6 +49,7 @@ str_map_vector default_wads; // texture names in the default wads
 vector<string> server_files;
 vector<string> archive_files;
 vector<string> series_client_files;
+vector<string> parsed_scripts; // prevent scanning the same file more than once
 int unused_wads = 0;
 int max_reference_prints = 3;
 int res_files_generated = 0;
@@ -367,25 +368,7 @@ vector<string> get_cfg_resources(string map)
 				string map_script = normalize_path("scripts/maps/" + val + (needsExt ? ".as" : ""));
 				map_script.erase(std::remove(map_script.begin(), map_script.end(), '\"'), map_script.end());
 				
-				trace_missing_file(map_script, cfg, true);
-				push_unique(server_files, map_script);
-				push_unique(cfg_res, map_script);
-
-				vector<string> searchedScripts;
-				vector<string> scripts = get_script_dependencies(map_script, searchedScripts);
-				for (int i = 0; i < scripts.size(); i++)
-				{
-					bool isScript = get_ext(scripts[i]) == "as";
-					if (isScript) {
-						trace_missing_file(scripts[i], cfg + " --> " + map_script, true);
-						push_unique(server_files, scripts[i]);
-						push_unique(cfg_res, scripts[i]);
-					}
-					else // file is a sound/model and was traced in the dependency function
-					{
-						push_unique(cfg_res, scripts[i]);
-					}
-				}
+				add_script_resources(map_script, cfg_res, cfg);
 			}
 		}
 	}
@@ -1274,6 +1257,7 @@ int main(int argc, char* argv[])
 				unused_wads = 0;
 				g_tracemap_req.clear();
 				g_tracemap_opt.clear();
+				parsed_scripts.clear();
 
 				string f = bsp_name(files[i]);
 

@@ -757,6 +757,36 @@ vector<string> get_script_dependencies(string fname, vector<string>& searchedScr
 	return resources;
 }
 
+void add_script_resources(string script, vector<string>& resources, string traceFrom)
+{
+	if (find(parsed_scripts.begin(), parsed_scripts.end(), script) != parsed_scripts.end())
+	{
+		// don't process the same script twice
+		return;
+	}
+		
+	push_unique(parsed_scripts, script);
+	trace_missing_file(script, traceFrom, true);
+	push_unique(server_files, script);
+	push_unique(resources, script);
+
+	vector<string> searchedScripts;
+	vector<string> scripts = get_script_dependencies(script, searchedScripts);
+	for (int i = 0; i < scripts.size(); i++)
+	{
+		bool isScript = get_ext(scripts[i]) == "as";
+		if (isScript) {
+			trace_missing_file(scripts[i], traceFrom + " --> " + script, true);
+			push_unique(server_files, scripts[i]);
+			push_unique(resources, scripts[i]);
+		}
+		else // file is a sound/model and was traced in the dependency function
+		{
+			push_unique(resources, scripts[i]);
+		}
+	}
+}
+
 string replaceString(string subject, string search, string replace) 
 {
 	size_t pos = 0;

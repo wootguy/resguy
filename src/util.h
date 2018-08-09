@@ -61,8 +61,11 @@ vector<string> get_replacement_file_resources(string fname);
 
 vector<string> get_sentence_file_resources(string fname, string trace_path);
 
-// parses script for includes of other scripts
+// parses script for includes of other scripts and resources
 vector<string> get_script_dependencies(string fname, vector<string>& searchedScripts);
+
+// find all resources included by the script and add them to the requested list
+void add_script_resources(string script, vector<string>& resources, string traceFrom);
 
 // removes '..' from relative paths and replaces all \ slashes with /
 string normalize_path(string s, bool is_keyvalue=false);
