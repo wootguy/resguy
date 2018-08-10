@@ -31,9 +31,9 @@ Mdl::~Mdl()
 }
 
 
-vector<string> Mdl::get_resources()
+set_icase Mdl::get_resources()
 {
-	vector<string> resources;
+	set_icase resources;
 
 	string model_path = fname;
 	int mdir = fname.find("models/");
@@ -51,7 +51,10 @@ vector<string> Mdl::get_resources()
 
 	// Add player model preview
 	if (normalize_path(model_path).find("models/player/") != string::npos)
-		resources.push_back(model_path + name + ".bmp");
+	{
+		string preview_file = model_path + name + ".bmp";
+		resources.insert(preview_file);
+	}
 	
 	ifstream fin (fname, ios::binary);
 
@@ -118,6 +121,11 @@ vector<string> Mdl::get_resources()
 			mstudiomodel_t mod;
 			fin.seekg(bod.modelindex + i*sizeof(mstudiomodel_t));
 			fin.read((char*)&mod, sizeof(mstudiomodel_t));
+			if (fin.eof())
+			{
+				log("ERROR: Failed to load body " + to_string(i) + "/" + to_string(bod.nummodels) + " for model: " + fname);
+				goto cleanup;
+			}
 			if (mod.nummesh != 0)
 			{
 				isEmptyModel = false;
@@ -129,7 +137,6 @@ vector<string> Mdl::get_resources()
 			push_unique(resources, t_path);
 	}
 
-
 	// sounds and sprites attached to events
 	for (int i = 0; i < mdlHead.numseq; i++)
 	{
@@ -137,12 +144,22 @@ vector<string> Mdl::get_resources()
 
 		mstudioseqdesc_t seq;
 		fin.read((char*)&seq, sizeof(mstudioseqdesc_t));
+		if (fin.eof())
+		{
+			log("ERROR: Failed to load sequence " + to_string(i) + "/" + to_string(mdlHead.numseq) +" for model: " + fname);
+			goto cleanup;
+		}
 	
 		for (int k = 0; k < seq.numevents; k++)
 		{
 			fin.seekg(seq.eventindex + k*sizeof(mstudioevent_t));
 			mstudioevent_t evt;
 			fin.read((char*)&evt, sizeof(mstudioevent_t));
+			if (fin.eof())
+			{
+				log("ERROR: Failed to load event " + to_string(k) + "/" + to_string(seq.numevents) + " for model: " + fname);
+				goto cleanup;
+			}
 
 			string opt = evt.options;
 			if (get_ext(opt).length() == 0)
@@ -200,9 +217,7 @@ vector<string> Mdl::get_resources()
 		}
 	}
 	
-
+	cleanup:
 	fin.close();
-	
-
 	return resources;
 }
