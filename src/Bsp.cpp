@@ -131,20 +131,7 @@ set_icase Bsp::get_resources()
 					continue;
 
 				string res = normalize_path("sound/" + name + "/" + val, true);
-				if (is_unique(resources, res))
-				{
-					trace_missing_file(res, ent_trace, true);
-
-					server_files.insert(res);
-					resources.insert(res);
-					set_icase replace_res = get_replacement_file_resources(res);
-					for (set_icase::iterator it = replace_res.begin(); it != replace_res.end(); it++)
-					{
-						string snd = "sound/" + *it;
-						trace_missing_file(snd, ent_trace + " --> " + res, true);
-						push_unique(resources, snd);
-					}
-				}
+				add_replacement_file_resources(res, resources, ent_trace, false);
 			}
 			else if ((isWeaponCustom && key == "sprite_directory") || 
 					 (cname.find("weapon_") == 0 && key == "customspritedir"))
@@ -241,7 +228,7 @@ set_icase Bsp::get_resources()
 			if (wadTex.size())
 			{
 				bool wad_is_used = false;
-				for (set_icase::iterator iter = map_textures.begin(); iter != map_textures.end(); iter++)
+				for (set_icase::iterator iter = map_textures.begin(); iter != map_textures.end();)
 				{
 					if (wadTex.find(*iter) != wadTex.end())
 					{
@@ -333,58 +320,23 @@ set_icase Bsp::get_resources()
 		if (global_model_list.length())
 		{			
 			global_model_list = normalize_path("models/" + name + "/" + global_model_list, true);
-
-			trace_missing_file(global_model_list, trace, true);
-			push_unique(server_files, global_model_list);
-			push_unique(resources, global_model_list);
-			set_icase replace_res = get_replacement_file_resources(global_model_list);
-			for (set_icase::iterator it = replace_res.begin(); it != replace_res.end(); it++)
-				add_model_resources(normalize_path(*it), resources, trace + " --> " + global_model_list);
+			add_replacement_file_resources(global_model_list, resources, trace, true);
 		}
 
 		string global_sound_list = worldSpawn->keyvalues["globalsoundlist"];
 		if (global_sound_list.length())
 		{			
 			global_sound_list = normalize_path("sound/" + name + "/" + global_sound_list, true);
-
-			trace_missing_file(global_sound_list, trace, true);
-			push_unique(server_files, global_sound_list);
-			push_unique(resources, global_sound_list);
-			set_icase replace_res = get_replacement_file_resources(global_sound_list);
-			for (set_icase::iterator it = replace_res.begin(); it != replace_res.end(); it++)
-			{
-				trace_missing_file("sound/" + *it, trace + " --> " + global_sound_list, true);
-				push_unique(resources, "sound/" + *it);
-			}
+			add_replacement_file_resources(global_sound_list, resources, trace, false);
 		}
 
 		string forced_player_models = worldSpawn->keyvalues["forcepmodels"];
 		if (forced_player_models.length()) 
-		{
-			vector<string> models = splitString(forced_player_models, ";");
-			for (int i = 0; i < models.size(); i++)
-			{
-				string model = models[i];
-				if (model.length() == 0)
-					continue;
-				string path = "models/player/" + model + "/" + model;
-
-				trace_missing_file(path + ".bmp", trace, true);
-				push_unique(resources, path + ".bmp");
-
-				add_model_resources(normalize_path(path + ".mdl"), resources, trace);
-			}
-		}
+			add_force_pmodels_resources(forced_player_models, resources, trace);
 
 		string sentences_file = normalize_path(worldSpawn->keyvalues["sentence_file"], true);
 		if (sentences_file.length())
-		{
-			trace_missing_file(sentences_file, trace, true);
-			push_unique(server_files, sentences_file);
-			push_unique(resources, sentences_file);
-			set_icase sounds = get_sentence_file_resources(sentences_file, trace + " --> " + sentences_file);
-			resources.insert(sounds.begin(), sounds.end());
-		}
+			add_sentence_file_resources(sentences_file, resources, trace);
 
 		string materials_file = worldSpawn->keyvalues["materials_file"];
 		if (materials_file.length()) 

@@ -33,7 +33,8 @@ enum read_dir
     FROM_END	// parse the string end to beginning (backwards)
 };
 
-struct InsensitiveCompare { 
+struct InsensitiveCompare 
+{ 
     bool operator() (const std::string& a, const std::string& b) const {
         return strcasecmp(a.c_str(), b.c_str()) < 0;
     }
@@ -41,10 +42,13 @@ struct InsensitiveCompare {
 
 typedef unordered_map< string, vector<string> > str_map_vector;
 typedef unordered_map< string, set<string> > str_map_set;
+typedef unordered_map< string, bool > str_map_bool;
 typedef set<string, InsensitiveCompare> set_icase;
 
 extern str_map_set g_tracemap_req;
 extern str_map_set g_tracemap_opt;
+extern str_map_bool file_exist_cache;
+extern set<string, InsensitiveCompare> processed_models;
 
 static string dummy;
 
@@ -79,6 +83,15 @@ void add_script_resources(string script, set_icase& resources, string traceFrom)
 
 // find all resources included by the model and add them to the resource set
 void add_model_resources(string model, set_icase& resources, string traceFrom);
+
+// find all resources included by a global model/sound replacement file and add them to the resource set
+void add_replacement_file_resources(string model, set_icase& resources, string traceFrom, bool modelsNotSounds);
+
+// find all resources included by a custom sentence file and add them to the resource set
+void add_sentence_file_resources(string model, set_icase& resources, string traceFrom);
+
+// find all resources included by a pmodel list (e.g. "sieni;sieni;sieni;")
+void add_force_pmodels_resources(string pmodel_list, set_icase& resources, string traceFrom);
 
 // removes '..' from relative paths and replaces all \ slashes with /
 string normalize_path(string s, bool is_keyvalue=false);
@@ -122,7 +135,7 @@ string readQuote(const string& str);
 // convert / to \ in the pathname
 void winPath(string& path);
 
-vector<string> getDirFiles(string path, string searchStr, string startswith="");
+vector<string> getDirFiles(string path, string searchStr, string startswith="", bool onlyOne=false);
 
 vector<string> getSubdirs(string path);
 

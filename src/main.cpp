@@ -262,13 +262,7 @@ set_icase get_cfg_resources(string map)
 				string val = trimSpaces(line.substr(line.find("globalmodellist")+strlen("globalmodellist")));
 				val.erase(std::remove(val.begin(), val.end(), '\"'), val.end());
 				string global_model_list = normalize_path("models/" + map + "/" + val);
-
-				trace_missing_file(global_model_list, cfg, true);
-				push_unique(server_files, global_model_list);
-				push_unique(cfg_res, global_model_list);
-				set_icase replace_res = get_replacement_file_resources(global_model_list);
-				for (set_icase::iterator it = replace_res.begin(); it != replace_res.end(); it++)
-					add_model_resources(normalize_path(*it), cfg_res, cfg + " --> " + global_model_list);
+				add_replacement_file_resources(global_model_list, cfg_res, cfg, true);
 			}
 
 			if (line.find("globalsoundlist") == 0)
@@ -276,37 +270,14 @@ set_icase get_cfg_resources(string map)
 				string val = trimSpaces(line.substr(line.find("globalsoundlist")+strlen("globalsoundlist")));
 				val.erase(std::remove(val.begin(), val.end(), '\"'), val.end());
 				string global_sound_list = normalize_path("sound/" + map + "/" + val);
-
-				trace_missing_file(global_sound_list, cfg, true);
-				push_unique(server_files, global_sound_list);
-				push_unique(cfg_res, global_sound_list);
-				set_icase replace_res = get_replacement_file_resources(global_sound_list);
-				for (set_icase::iterator it = replace_res.begin(); it != replace_res.end(); it++)
-				{
-					string snd = "sound/" + *it;
-					trace_missing_file(snd, cfg + " --> " + global_sound_list, true);
-					push_unique(cfg_res, snd);
-				}
+				add_replacement_file_resources(global_sound_list, cfg_res, cfg, false);
 			}
 
 			if (line.find("forcepmodels") == 0)
 			{
 				string force_pmodels = trimSpaces(line.substr(line.find("forcepmodels")+strlen("forcepmodels")));
 				force_pmodels.erase(std::remove(force_pmodels.begin(), force_pmodels.end(), '\"'), force_pmodels.end());
-
-				vector<string> models = splitString(force_pmodels, ";");
-				for (int i = 0; i < models.size(); i++)
-				{
-					string model = models[i];
-					if (model.length() == 0)
-						continue;
-					string path = "models/player/" + model + "/" + model;
-
-					trace_missing_file(path + ".bmp", cfg, true);
-					push_unique(cfg_res, path + ".bmp");
-
-					add_model_resources(normalize_path(path + ".mdl"), cfg_res, cfg);
-				}
+				add_force_pmodels_resources(force_pmodels, cfg_res, cfg);
 			}
 
 			if (line.find("sentence_file") == 0)
@@ -314,12 +285,7 @@ set_icase get_cfg_resources(string map)
 				string val = trimSpaces(line.substr(line.find("sentence_file")+strlen("sentence_file")));
 				string sentences_file = normalize_path(val);
 				sentences_file.erase(std::remove(sentences_file.begin(), sentences_file.end(), '\"'), sentences_file.end());
-
-				trace_missing_file(sentences_file, cfg, true);
-				push_unique(server_files, sentences_file);
-				push_unique(cfg_res, sentences_file);
-				set_icase sounds = get_sentence_file_resources(sentences_file, cfg + " --> " + sentences_file);
-				cfg_res.insert(sounds.begin(), sounds.end());
+				add_sentence_file_resources(sentences_file, cfg_res, cfg);
 			}
 
 			if (line.find("materials_file") == 0)
@@ -1242,6 +1208,7 @@ int main(int argc, char* argv[])
 				g_tracemap_req.clear();
 				g_tracemap_opt.clear();
 				parsed_scripts.clear();
+				processed_models.clear();
 
 				string f = bsp_name(files[i]);
 
@@ -1317,6 +1284,9 @@ int main(int argc, char* argv[])
 	{
 		archive_files.clear();
 		series_client_files.clear();
+
+		// let user fix missing file errors without having to restart the program
+		file_exist_cache.clear();
 		res_files_generated = 0;
 
 		if (map_not_found)
