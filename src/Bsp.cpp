@@ -220,7 +220,7 @@ vector<string> Bsp::get_resources()
 							bool isSentence = key == "usesentence" || key == "unusesentence" || key == "sentence";
 							if (isSentence && sval[0] == '+') // means string is a file path, not a sentence
 								sval = sval.substr(1);
-							if (!isSentence && (val[0] == '!') || (val[0] == '*')) // ! = sentence, * = file stream
+							if (!isSentence && ((val[0] == '!') || (val[0] == '*'))) // ! = sentence, * = file stream
 								sval = sval.substr(1);
 
 							string snd = normalize_path(prefix + sval, true);
