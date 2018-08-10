@@ -810,6 +810,7 @@ string normalize_path(string s, bool is_keyvalue)
 		// converted to a '\', so the following character is deleted. To counteract this, mappers add a 
 		// random character after the '\' (usually "!" or "*"). This is why there are so many paths
 		// that look broken but aren't (e.g. "models\!barney.mdl")
+		// Update: using * indicates that HL should stream the file instead of loading all at once
 		s = replaceString(s, "\\n", "\n");
 		for (int i = 0; i < (int)s.size()-1; i++)
 			if (s[i] == '\\')
