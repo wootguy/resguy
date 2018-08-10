@@ -99,7 +99,7 @@ vector<string> Bsp::get_resources()
 
 			string ext = toLowerCase(val.substr(iext, val.length() - iext));
 
-			if (key == "m_iszscriptfile")
+			if (key == "m_iszscriptfile") // trigger_script
 			{
 				string script_path = normalize_path("scripts/maps/" + val, true);
 
@@ -131,7 +131,10 @@ vector<string> Bsp::get_resources()
 			}
 			else if (ext == "spr")
 			{
-				string spr = normalize_path(val, true);
+				string spr = val;
+				if (key == "item_icon") // item_inventory
+					spr = "sprites/" + spr;
+				spr = normalize_path(spr, true);
 				trace_missing_file(spr, ent_trace, true);
 				push_unique(resources, spr);
 			}
@@ -216,6 +219,8 @@ vector<string> Bsp::get_resources()
 							string prefix = "sound/";
 							bool isSentence = key == "usesentence" || key == "unusesentence" || key == "sentence";
 							if (isSentence && sval[0] == '+') // means string is a file path, not a sentence
+								sval = sval.substr(1);
+							if (!isSentence && (val[0] == '!') || (val[0] == '*')) // ! = sentence, * = file stream
 								sval = sval.substr(1);
 
 							string snd = normalize_path(prefix + sval, true);
