@@ -31,6 +31,9 @@ vector<string> printlog;
 str_map_set g_tracemap_req;
 str_map_set g_tracemap_opt;
 
+str_map_bool file_exist_cache;
+set<string, InsensitiveCompare> processed_models;
+
 const int numContentDirs = 5;
 const char * contentDirs[numContentDirs] = {"svencoop_hd", "svencoop_addon", "svencoop_downloads", "svencoop", "valve"};
 
@@ -518,7 +521,7 @@ set_icase get_script_dependencies(string fname, set<string>& searchedScripts)
 
 	contentExists(fname, true); // fix caps
 
-	string trace = fname;	
+	string trace = fname;
 
 	ifstream myfile(fname);
 	if (myfile.is_open())
@@ -777,7 +780,10 @@ void add_script_resources(string script, set_icase& resources, string traceFrom)
 
 void add_model_resources(string model_path, set_icase& resources, string traceFrom)
 {
-	// TODO: Don't process the same model twice
+	if (processed_models.find(model_path) != processed_models.end())
+		return;
+	processed_models.insert(model_path);
+
 	Mdl model = Mdl(model_path);
 
 	trace_missing_file(model_path, traceFrom, true);
@@ -790,6 +796,52 @@ void add_model_resources(string model_path, set_icase& resources, string traceFr
 			trace_missing_file(*iter, traceFrom + " --> " + model_path , true);
 			push_unique(resources, *iter);
 		}
+	}
+}
+
+void add_replacement_file_resources(string replacement_file, set_icase& resources, string traceFrom, bool modelsNotSounds)
+{
+	// TODO: Don't process the same file twice (will require global resource set)
+	trace_missing_file(replacement_file, traceFrom, true);
+	push_unique(server_files, replacement_file);
+	push_unique(resources, replacement_file);
+	set_icase replace_res = get_replacement_file_resources(replacement_file);
+	for (set_icase::iterator it = replace_res.begin(); it != replace_res.end(); it++)
+	{
+		if (modelsNotSounds)
+			add_model_resources(normalize_path(*it), resources, traceFrom + " --> " + replacement_file);
+		else
+		{
+			string snd = "sound/" + *it;
+			trace_missing_file(snd, traceFrom + " --> " + replacement_file, true);
+			push_unique(resources, snd);
+		}
+	}
+}
+
+void add_sentence_file_resources(string setence_file, set_icase& resources, string traceFrom)
+{
+	trace_missing_file(setence_file, traceFrom, true);
+	push_unique(server_files, setence_file);
+	push_unique(resources, setence_file);
+	set_icase sounds = get_sentence_file_resources(setence_file, traceFrom + " --> " + setence_file);
+	resources.insert(sounds.begin(), sounds.end());
+}
+
+void add_force_pmodels_resources(string pmodel_list, set_icase& resources, string traceFrom)
+{
+	vector<string> models = splitString(pmodel_list, ";");
+	for (int i = 0; i < models.size(); i++)
+	{
+		string model = models[i];
+		if (model.length() == 0)
+			continue;
+		string path = "models/player/" + model + "/" + model;
+
+		trace_missing_file(path + ".bmp", traceFrom, true);
+		push_unique(resources, path + ".bmp");
+
+		add_model_resources(normalize_path(path + ".mdl"), resources, traceFrom);
 	}
 }
 
@@ -824,33 +876,36 @@ string normalize_path(string s, bool is_keyvalue)
 	}
 
 	s = replaceChar(s, '\\', '/');
-	vector<string> parts = splitString(s, "/");
-	int depth = 0;
-	for (int i = 0; i < parts.size(); i++)
+	if (s.find("..") != string::npos)
 	{
-		depth++;
-		if (parts[i] == "..")
+		vector<string> parts = splitString(s, "/");
+		int depth = 0;
+		for (int i = 0; i < parts.size(); i++)
 		{
-			depth--;
-			if (depth == 0)
+			depth++;
+			if (parts[i] == "..")
 			{
-				continue; // can only .. up to Sven Co-op, and not any further
-			}
-			else if (i > 0)
-			{
-				parts.erase(parts.begin() + i);
-				parts.erase(parts.begin() + (i-1));
-				i -= 2;
+				depth--;
+				if (depth == 0)
+				{
+					continue; // can only .. up to Sven Co-op, and not any further
+				}
+				else if (i > 0)
+				{
+					parts.erase(parts.begin() + i);
+					parts.erase(parts.begin() + (i-1));
+					i -= 2;
+				}
 			}
 		}
-	}
-	s = "";
-	for (int i = 0; i < parts.size(); i++)
-	{
-		if (i > 0) {
-			s += '/';
+		s = "";
+		for (int i = 0; i < parts.size(); i++)
+		{
+			if (i > 0) {
+				s += '/';
+			}
+			s += parts[i];
 		}
-		s += parts[i];
 	}
 
 	if (!case_sensitive_mode)
@@ -891,16 +946,25 @@ string toLowerCase(string str)
 // Note: Paths with ".." in them need to be normalize_path()'d before calling this (Linux only)
 bool fileExists(string& file, bool fix_path, string from_path, int from_skip)
 {
+	auto exist = file_exist_cache.find(file);
+	if (exist != file_exist_cache.end())
+		return exist->second;
+
 	if (FILE *f = fopen(file.c_str(), "r")) {
 		fclose(f);
+		file_exist_cache[file] = true;
 		return true;
 	}
 
 #if defined(WIN32) || defined(_WIN32)
+	file_exist_cache[file] = false;
 	return false;
 #else
 	if (case_sensitive_mode)
+	{
+		file_exist_cache[file] = false;
 		return false;
+	}
 	
 	// check each folder in the path for correct capitilization
 	string path = ".";
@@ -919,7 +983,10 @@ bool fileExists(string& file, bool fix_path, string from_path, int from_skip)
 			// open first dir in path
 			DIR * dir = opendir(path.c_str());
 			if (!dir)
+			{
+				file_exist_cache[file] = false;
 				return false; // shouldn't ever happen
+			}
 
 			// search all dirs that are a case-insensitive match for the next dir in the path
 			string lowerDir = toLowerCase(dirs[from_skip]);
@@ -937,10 +1004,12 @@ bool fileExists(string& file, bool fix_path, string from_path, int from_skip)
 					fileExists(file, fix_path, path + "/" + name, from_skip+1))
 				{
 					closedir(dir);
+					file_exist_cache[file] = true;
 					return true;
 				}
 			}
 			closedir(dir);
+			file_exist_cache[file] = false;
 			return false; // next dir in path doesn't exist
 		}
 	}
@@ -952,7 +1021,10 @@ bool fileExists(string& file, bool fix_path, string from_path, int from_skip)
 	DIR *dir = opendir(path.c_str());
 		
 	if(!dir)
+	{
+		file_exist_cache[file] = false;
 		return false;
+	}
 	
 	string lowerFile = toLowerCase(filename);
 	bool found = false;
@@ -982,6 +1054,7 @@ bool fileExists(string& file, bool fix_path, string from_path, int from_skip)
 		}
 	}
 	closedir(dir);
+	file_exist_cache[file] = found;
 	return found;
 #endif
 }
@@ -1012,12 +1085,12 @@ string find_content_ext(string fname, string dir)
 {
 	vector<string> results;
 
-	results = getDirFiles(dir, "*", fname);
+	results = getDirFiles(dir, "*", fname, true);
 	if (results.size()) return get_ext(results[0]);
 
 	for (int i = 0; i < numContentDirs; i++)
 	{
-		results = getDirFiles("../" + string(contentDirs[i]) + "/" + dir, "*", fname);
+		results = getDirFiles("../" + string(contentDirs[i]) + "/" + dir, "*", fname, true);
 		if (results.size()) return get_ext(results[0]);
 	}
 
@@ -1061,7 +1134,7 @@ string readQuote(const string& str)
     return "";
 }
 
-vector<string> getDirFiles( string path, string extension, string startswith )
+vector<string> getDirFiles( string path, string extension, string startswith, bool onlyOne)
 {
     vector<string> results;
     
@@ -1083,7 +1156,11 @@ vector<string> getDirFiles( string path, string extension, string startswith )
 		results.push_back(FindFileData.cFileName);
 
 		while (FindNextFile(hFind, &FindFileData) != 0)
+		{
 			results.push_back(FindFileData.cFileName);
+			if (onlyOne)
+				break;
+		}
 
 		FindClose(hFind);
 	}
@@ -1115,7 +1192,11 @@ vector<string> getDirFiles( string path, string extension, string startswith )
         if(extension == "*" || std::equal(extension.rbegin(), extension.rend(), lowerName.rbegin()))
 		{
 			if (startswith.size() == 0 || std::equal(startswith.begin(), startswith.end(), lowerName.begin()))
+			{
 				results.push_back(name);
+				if (onlyOne)
+					break;
+			}
 		}
     }
     
@@ -1253,12 +1334,13 @@ string trimSpaces(string s)
 	int lineStart = s.find_first_not_of(" \t\n\r");
 	if (lineStart == string::npos)
 		return "";
-	s = s.substr(lineStart);
 
 	// Remove spaces after the last character
 	int lineEnd = s.find_last_not_of(" \t\n\r");
 	if (lineEnd != string::npos && lineEnd < s.length() - 1)
-		s = s.substr(0, lineEnd+1);
+		s = s.substr(lineStart, (lineEnd+1) - lineStart);
+	else
+		s = s.substr(lineStart);
 
 	return s;
 }
