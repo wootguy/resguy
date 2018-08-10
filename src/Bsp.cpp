@@ -43,9 +43,9 @@ Bsp::~Bsp()
 		delete ents[i];
 }
 
-vector<string> Bsp::get_resources()
+set_icase Bsp::get_resources()
 {
-	vector<string> resources;
+	set_icase resources;
 
 	load_ents();
 
@@ -111,23 +111,7 @@ vector<string> Bsp::get_resources()
 			}
 			else if (ext == "mdl") 
 			{
-				string model_path = normalize_path(val, true);
-
-				if (is_unique(resources, model_path))
-				{
-					Mdl model = Mdl(model_path);
-					trace_missing_file(model_path, ent_trace, true);
-					push_unique(resources, model_path);
-					if (model.valid)
-					{
-						vector<string> model_res = model.get_resources();
-						for (int k = 0; k < model_res.size(); k++)
-						{
-							trace_missing_file(model_res[k], ent_trace + " --> " + model_path, true);
-							push_unique(resources, model_res[k]);
-						}
-					}
-				}
+				add_model_resources(normalize_path(val, true), resources, ent_trace);
 			}
 			else if (ext == "spr")
 			{
@@ -151,12 +135,12 @@ vector<string> Bsp::get_resources()
 				{
 					trace_missing_file(res, ent_trace, true);
 
-					server_files.push_back(res);
-					resources.push_back(res);
-					vector<string> replace_res = get_replacement_file_resources(res);
-					for (int k = 0; k < replace_res.size(); k++)
+					server_files.insert(res);
+					resources.insert(res);
+					set_icase replace_res = get_replacement_file_resources(res);
+					for (set_icase::iterator it = replace_res.begin(); it != replace_res.end(); it++)
 					{
-						string snd = "sound/" + replace_res[k];
+						string snd = "sound/" + *it;
 						trace_missing_file(snd, ent_trace + " --> " + res, true);
 						push_unique(resources, snd);
 					}
@@ -236,7 +220,7 @@ vector<string> Bsp::get_resources()
 
 	if (worldSpawn) 
 	{
-		vector<string> map_textures = get_textures();
+		set_icase map_textures = get_textures();
 
 		// find wads (TODO: Only include them if the textures are actually used)
 		string wadList = worldSpawn->keyvalues["wad"];
@@ -253,18 +237,19 @@ vector<string> Bsp::get_resources()
 			}
 
 			string wadpath = wadname;
-			vector<string>& wadTex = default_wads[toLowerCase(wadname)];
+			set<string>& wadTex = default_wads[toLowerCase(wadname)];
 			if (wadTex.size())
 			{
 				bool wad_is_used = false;
-				for (int k = 0; k < wadTex.size(); k++)
+				for (set_icase::iterator iter = map_textures.begin(); iter != map_textures.end(); iter++)
 				{
-					auto idx = find(map_textures.begin(), map_textures.end(), wadTex[k]);
-					if (idx != map_textures.end())
+					if (wadTex.find(*iter) != wadTex.end())
 					{
 						wad_is_used = true;
-						map_textures.erase(idx);
+						map_textures.erase(iter++);
 					}
+					else
+						iter++;
 				}
 				if (wad_is_used)
 					needed_wads.push_back(wadname);
@@ -284,10 +269,10 @@ vector<string> Bsp::get_resources()
 					for (int k = 0; k < wad.header.nDir; k++)
 					{
 						string texName = toLowerCase(wad.dirEntries[k].szName);
-						auto idx = find(map_textures.begin(), map_textures.end(), texName);
-						if (idx != map_textures.end())
+						set_icase::iterator iter = map_textures.find(texName);
+						if (iter != map_textures.end())
 						{
-							map_textures.erase(idx);
+							map_textures.erase(iter);
 							wad_is_used = true;
 						}
 					}
@@ -352,24 +337,9 @@ vector<string> Bsp::get_resources()
 			trace_missing_file(global_model_list, trace, true);
 			push_unique(server_files, global_model_list);
 			push_unique(resources, global_model_list);
-			vector<string> replace_res = get_replacement_file_resources(global_model_list);
-			for (int k = 0; k < replace_res.size(); k++)
-			{
-				string model_path = normalize_path(replace_res[k]);
-				Mdl model = Mdl(model_path);
-
-				trace_missing_file(model_path, trace + " --> " + global_model_list, true);
-				push_unique(resources, model_path);
-				if (model.valid)
-				{
-					vector<string> model_res = model.get_resources();
-					for (int k = 0; k < model_res.size(); k++)
-					{
-						trace_missing_file(model_res[k], trace + " --> " + global_model_list + " --> " + model_path , true);
-						push_unique(resources, model_res[k]);
-					}
-				}
-			}
+			set_icase replace_res = get_replacement_file_resources(global_model_list);
+			for (set_icase::iterator it = replace_res.begin(); it != replace_res.end(); it++)
+				add_model_resources(normalize_path(*it), resources, trace + " --> " + global_model_list);
 		}
 
 		string global_sound_list = worldSpawn->keyvalues["globalsoundlist"];
@@ -380,11 +350,11 @@ vector<string> Bsp::get_resources()
 			trace_missing_file(global_sound_list, trace, true);
 			push_unique(server_files, global_sound_list);
 			push_unique(resources, global_sound_list);
-			vector<string> replace_res = get_replacement_file_resources(global_sound_list);
-			for (int k = 0; k < replace_res.size(); k++)
+			set_icase replace_res = get_replacement_file_resources(global_sound_list);
+			for (set_icase::iterator it = replace_res.begin(); it != replace_res.end(); it++)
 			{
-				trace_missing_file("sound/" + replace_res[k], trace + " --> " + global_sound_list, true);
-				push_unique(resources, "sound/" + replace_res[k]);
+				trace_missing_file("sound/" + *it, trace + " --> " + global_sound_list, true);
+				push_unique(resources, "sound/" + *it);
 			}
 		}
 
@@ -399,22 +369,10 @@ vector<string> Bsp::get_resources()
 					continue;
 				string path = "models/player/" + model + "/" + model;
 
-				trace_missing_file(path + ".mdl", trace, true);
 				trace_missing_file(path + ".bmp", trace, true);
-				push_unique(resources, path + ".mdl");
 				push_unique(resources, path + ".bmp");
 
-				string model_path = normalize_path(path + ".mdl");
-				Mdl mdl = Mdl(model_path);
-				if (mdl.valid)
-				{
-					vector<string> model_res = mdl.get_resources();
-					for (int k = 0; k < model_res.size(); k++)
-					{
-						trace_missing_file(model_res[k], trace + " --> " + model_path, true);
-						push_unique(resources, model_res[k]);
-					}
-				}
+				add_model_resources(normalize_path(path + ".mdl"), resources, trace);
 			}
 		}
 
@@ -424,9 +382,8 @@ vector<string> Bsp::get_resources()
 			trace_missing_file(sentences_file, trace, true);
 			push_unique(server_files, sentences_file);
 			push_unique(resources, sentences_file);
-			vector<string> sounds = get_sentence_file_resources(sentences_file, trace + " --> " + sentences_file);
-			for (int i = 0; i < sounds.size(); i++)
-				push_unique(resources, sounds[i]);
+			set_icase sounds = get_sentence_file_resources(sentences_file, trace + " --> " + sentences_file);
+			resources.insert(sounds.begin(), sounds.end());
 		}
 
 		string materials_file = worldSpawn->keyvalues["materials_file"];
@@ -441,9 +398,9 @@ vector<string> Bsp::get_resources()
 	return resources;
 }
 
-vector<string> Bsp::get_textures()
+set_icase Bsp::get_textures()
 {
-	vector<string> tex_names;
+	set_icase tex_names;
 
 	byte * textures = lumps[LUMP_TEXTURES];
 	int num_textures = ((int*)textures)[0];
@@ -463,7 +420,7 @@ vector<string> Bsp::get_textures()
 		if (inWad)
 		{
 			string name = t->szName;
-			tex_names.push_back(toLowerCase(name));
+			tex_names.insert(toLowerCase(name));
 			//cout << "GOT WAD TEX: " << name << endl;
 		}
 	}

@@ -1,6 +1,4 @@
 #include <iostream>
-#include <string>
-#include <vector>
 #include "Bsp.h"
 #include "Mdl.h"
 #include "util.h"
@@ -44,12 +42,12 @@ char _getch()
 
 using namespace std;
 
-vector<string> default_content;
-str_map_vector default_wads; // texture names in the default wads
-vector<string> server_files;
-vector<string> archive_files;
-vector<string> series_client_files;
-vector<string> parsed_scripts; // prevent scanning the same file more than once
+set<string> default_content;
+str_map_set default_wads; // texture names in the default wads
+set_icase server_files;
+set<string> archive_files;
+set_icase series_client_files;
+set<string> parsed_scripts; // prevent scanning the same file more than once
 int unused_wads = 0;
 int max_reference_prints = 3;
 int res_files_generated = 0;
@@ -146,9 +144,9 @@ void load_default_content()
 			
 
 			if (parsingTexNames)
-				default_wads[wad_name].push_back(toLowerCase(line));
+				default_wads[wad_name].insert(toLowerCase(line));
 			else
-				default_content.push_back(toLowerCase(line));
+				default_content.insert(toLowerCase(line));
 		}
 		system(CLEAR_COMMAND);
 	}
@@ -231,9 +229,9 @@ void generate_default_content_file()
 }
 
 // search for referenced files here that may include other files (replacement files, scripts)
-vector<string> get_cfg_resources(string map)
+set_icase get_cfg_resources(string map)
 {
-	vector<string> cfg_res;
+	set_icase cfg_res;
 
 	string cfg = map + ".cfg";
 	string cfg_path = "maps/" + cfg;
@@ -268,24 +266,9 @@ vector<string> get_cfg_resources(string map)
 				trace_missing_file(global_model_list, cfg, true);
 				push_unique(server_files, global_model_list);
 				push_unique(cfg_res, global_model_list);
-				vector<string> replace_res = get_replacement_file_resources(global_model_list);
-				for (int k = 0; k < replace_res.size(); k++)
-				{
-					string model_path = normalize_path(replace_res[k]);
-					Mdl model = Mdl(model_path);
-
-					trace_missing_file(model_path, cfg + " --> " + global_model_list, true);
-					push_unique(cfg_res, model_path);
-					if (model.valid)
-					{
-						vector<string> model_res = model.get_resources();
-						for (int k = 0; k < model_res.size(); k++)
-						{
-							trace_missing_file(model_res[k], cfg + " --> " + global_model_list + " --> " + model_path, true);
-							push_unique(cfg_res, model_res[k]);
-						}
-					}
-				}
+				set_icase replace_res = get_replacement_file_resources(global_model_list);
+				for (set_icase::iterator it = replace_res.begin(); it != replace_res.end(); it++)
+					add_model_resources(normalize_path(*it), cfg_res, cfg + " --> " + global_model_list);
 			}
 
 			if (line.find("globalsoundlist") == 0)
@@ -297,10 +280,10 @@ vector<string> get_cfg_resources(string map)
 				trace_missing_file(global_sound_list, cfg, true);
 				push_unique(server_files, global_sound_list);
 				push_unique(cfg_res, global_sound_list);
-				vector<string> replace_res = get_replacement_file_resources(global_sound_list);
-				for (int k = 0; k < replace_res.size(); k++)
+				set_icase replace_res = get_replacement_file_resources(global_sound_list);
+				for (set_icase::iterator it = replace_res.begin(); it != replace_res.end(); it++)
 				{
-					string snd = "sound/" + replace_res[k];
+					string snd = "sound/" + *it;
 					trace_missing_file(snd, cfg + " --> " + global_sound_list, true);
 					push_unique(cfg_res, snd);
 				}
@@ -319,22 +302,10 @@ vector<string> get_cfg_resources(string map)
 						continue;
 					string path = "models/player/" + model + "/" + model;
 
-					trace_missing_file(path + ".mdl", cfg, true);
 					trace_missing_file(path + ".bmp", cfg, true);
-					push_unique(cfg_res, path + ".mdl");
 					push_unique(cfg_res, path + ".bmp");
 
-					string model_path = normalize_path(path + ".mdl");
-					Mdl mdl = Mdl(model_path);
-					if (mdl.valid)
-					{
-						vector<string> model_res = mdl.get_resources();
-						for (int k = 0; k < model_res.size(); k++)
-						{
-							trace_missing_file(model_res[k], cfg + " --> " + model_path, true);
-							push_unique(cfg_res, model_res[k]);
-						}
-					}
+					add_model_resources(normalize_path(path + ".mdl"), cfg_res, cfg);
 				}
 			}
 
@@ -347,9 +318,8 @@ vector<string> get_cfg_resources(string map)
 				trace_missing_file(sentences_file, cfg, true);
 				push_unique(server_files, sentences_file);
 				push_unique(cfg_res, sentences_file);
-				vector<string> sounds = get_sentence_file_resources(sentences_file, cfg + " --> " + sentences_file);
-				for (int i = 0; i < sounds.size(); i++)
-					push_unique(cfg_res, sounds[i]);
+				set_icase sounds = get_sentence_file_resources(sentences_file, cfg + " --> " + sentences_file);
+				cfg_res.insert(sounds.begin(), sounds.end());
 			}
 
 			if (line.find("materials_file") == 0)
@@ -377,9 +347,9 @@ vector<string> get_cfg_resources(string map)
 	return cfg_res;
 }
 
-vector<string> get_detail_resources(string map)
+set_icase get_detail_resources(string map)
 {
-	vector<string> resources;
+	set_icase resources;
 
 	string detail = "maps/" + map + "_detail.txt";
 	string detail_path = detail;
@@ -487,14 +457,14 @@ int ask_options()
 
 bool isServerFile(string file)
 {
-	if (find(server_files.begin(), server_files.end(), file) != server_files.end())
+	if (server_files.find(file) != server_files.end())
 		return true;
 
 	if (file.find("..") == 0)
 	{
 		file = file.substr(file.find_first_of("\\/")+1);
 		file = file.substr(file.find_first_of("\\/")+1);
-		if (find(server_files.begin(), server_files.end(), file) != server_files.end())
+		if (server_files.find(file) != server_files.end())
 			return true;
 	}
 	return false;
@@ -506,7 +476,7 @@ bool isServerFile(string file)
 // -1 = quit
 int write_map_resources(string map)
 {
-	vector<string> all_resources;
+	set_icase all_resources;
 
 	Bsp bsp(map);
 
@@ -528,9 +498,11 @@ int write_map_resources(string map)
 
 	string map_path = bsp.path;
 	log_init(map_path + map + "_resguy.log");
-	archive_files.push_back(bsp.full_path);
-	if (series_mode)
-		series_client_files.push_back(bsp.path + map + ".bsp");
+	archive_files.insert(bsp.full_path);
+	if (series_mode) {
+		string series_map_path = bsp.path + map + ".bsp";
+		series_client_files.insert(series_map_path);
+	}
 	
 	string opt_string;
 	opt_string += just_testing ? " -test" : "";
@@ -551,9 +523,12 @@ int write_map_resources(string map)
 
 	//cout << "Parsing " << bsp.name << ".bsp...\n\n";
 
-	insert_unique(bsp.get_resources(), all_resources);
-	insert_unique(get_cfg_resources(map), all_resources);
-	insert_unique(get_detail_resources(map), all_resources);
+	set_icase bspRes = bsp.get_resources();
+	set_icase cfgRes = get_cfg_resources(map);
+	set_icase detRes = get_detail_resources(map);
+	all_resources.insert(bspRes.begin(), bspRes.end());
+	all_resources.insert(cfgRes.begin(), cfgRes.end());
+	all_resources.insert(detRes.begin(), detRes.end());
 
 	string skl = "maps/" + map + "_skl.cfg";
 	if (contentExists(skl, true))
@@ -580,36 +555,38 @@ int write_map_resources(string map)
 	push_unique(all_resources, "maps/" + map + ".res");
 	push_unique(server_files, "maps/" + map + ".res");
 
-	sort( all_resources.begin(), all_resources.end(), stringCompare );
-	sort( server_files.begin(), server_files.end(), stringCompare );
-
 	// fix bad paths (they shouldn't be legal, but they are)
-	for (int i = 0; i < all_resources.size(); i++)
+	for (set_icase::iterator iter = all_resources.begin(); iter != all_resources.end();)
 	{
-		string oldPath = all_resources[i];
+		string oldPath = *iter;
 		string f = replaceChar(toLowerCase(oldPath), '\\', '/');
 
 		bool bad_path = true;
+		string new_path = "";
 		if (f.find("svencoop_hd/") == 0)
-			all_resources[i] = all_resources[i].substr(string("svencoop_hd/").length());
+			new_path = (*iter).substr(string("svencoop_hd/").length());
 		else if (f.find("svencoop_addon/") == 0)
-			all_resources[i] = all_resources[i].substr(string("svencoop_addon/").length());
+			new_path = (*iter).substr(string("svencoop_addon/").length());
 		else if (f.find("svencoop_downloads/") == 0)
-			all_resources[i] = all_resources[i].substr(string("svencoop_downloads/").length());
+			new_path = (*iter).substr(string("svencoop_downloads/").length());
 		else if (f.find("svencoop/") == 0)
-			all_resources[i] = all_resources[i].substr(string("svencoop/").length());
+			new_path = (*iter).substr(string("svencoop/").length());
 		else if (f.find("valve/") == 0)
-			all_resources[i] = all_resources[i].substr(string("valve/").length());
+			new_path = (*iter).substr(string("valve/").length());
 		else
 			bad_path = false;
 
 		if (bad_path)
 		{
+			all_resources.erase(iter++);
+			all_resources.insert(new_path);
+
 			log("'" + oldPath + "' should not be restricted to a specific content folder. Referenced in:\n");
 			if (g_tracemap_req[oldPath].size())
 			{
-				vector<string>& refs = g_tracemap_req[oldPath];
-				for (int i = 0; i < refs.size(); i++)
+				set<string>& refs = g_tracemap_req[oldPath];
+				int i = 0;
+				for (set<string>::iterator iter = refs.begin(); iter != refs.end(); iter++, i++)
 				{
 					int left_to_print = refs.size() - i;
 					if (!print_all_references && i == (max_reference_prints - 1) && left_to_print > 1)
@@ -617,7 +594,7 @@ int write_map_resources(string map)
 						log("\t" + to_string(left_to_print) + " more...\n");
 						break;
 					}
-					log("\t" + refs[i] + "\n");
+					log("\t" + *iter + "\n");
 				}
 				log("\n");
 			}
@@ -626,31 +603,34 @@ int write_map_resources(string map)
 				log("(usage unknown)\n\n");
 			}
 		}
+		else
+			iter++;
 	}
 
 	// remove all referenced files included in the base game
 	int numskips = 0;
-	for (int i = 0; i < all_resources.size(); i++)
+	for (set_icase::iterator iter = all_resources.begin(); iter != all_resources.end();)
 	{
-		if (find(default_content.begin(), default_content.end(), toLowerCase(all_resources[i])) != default_content.end())
+		if (default_content.find(*iter) != default_content.end())
 		{
 			if (print_skip)
 			{
 				if (unused_wads == 0 && numskips == 0)
 					log("\n");
-				log("Skip default: " + all_resources[i] + "\n");
+				log("Skip default: " + *iter + "\n");
 			}
-			all_resources.erase(all_resources.begin() + i);
-			i--;
+			all_resources.erase(iter++);
 			numskips++;
 		}
+		else
+			iter++;
 	}
 
 	// remove all referenced files with invalid extensions
-	for (int i = 0; i < all_resources.size(); i++)
+	for (set_icase::iterator iter = all_resources.begin(); iter != all_resources.end();)
 	{
 		bool ext_ok = false;
-		string ext = get_ext(all_resources[i]);
+		string ext = get_ext(*iter);
 		for (int k = 0; k < NUM_VALID_EXTS; k++)
 		{
 			if (ext == g_valid_exts[k])
@@ -665,34 +645,35 @@ int write_map_resources(string map)
 			{
 				if (unused_wads == 0 && numskips == 0)
 					log("\n");
-				log("Skip invalid: " + all_resources[i] + "\n");
+				log("Skip invalid: " + *iter + "\n");
 			}
-			all_resources.erase(all_resources.begin() + i);
-			i--;
+			all_resources.erase(iter++);
 			numskips++;
 		}
+		else
+			iter++;
 	}
 
 	// count missing files and create list of archive files
 	int missing = 0;
-	for (int i = 0; i < all_resources.size(); i++)
+	for (set_icase::iterator iter = all_resources.begin(); iter != all_resources.end(); iter++)
 	{
-		bool is_res = get_ext(all_resources[i]) == "res";
-		string tmp_path = all_resources[i];
+		bool is_res = get_ext(*iter) == "res";
+		string tmp_path = *iter;
 		string full_path;
 		if (!contentExists(tmp_path, true, full_path) && !is_res)
 			missing++;
 		else if (!is_res)
-			push_unique(archive_files, full_path);
+			archive_files.insert(full_path);
 	}
 
 	// add server files to archive list
-	for (int i = 0; i < server_files.size(); i++)
+	for (set_icase::iterator iter = server_files.begin(); iter != server_files.end(); iter++)
 	{
-		string tmp_path = server_files[i];
+		string tmp_path = *iter;
 		string full_path;
 		if (contentExists(tmp_path, true, full_path))
-			push_unique(archive_files, full_path);
+			archive_files.insert(full_path);
 	}
 
 	// write server files 
@@ -700,9 +681,9 @@ int write_map_resources(string map)
 	{
 		bool will_write_res = false;
 		int client_file_count = 0;
-		for (int i = 0; i < all_resources.size(); i++)
+		for (set_icase::iterator iter = all_resources.begin(); iter != all_resources.end(); iter++)
 		{
-			if (!isServerFile(all_resources[i]))
+			if (!isServerFile(*iter))
 			{
 				if (++client_file_count > missing)
 				{
@@ -714,10 +695,10 @@ int write_map_resources(string map)
 
 		ofstream fout2;
 		fout2.open(map_path + map + ".res2", ios::out | ios::trunc);
-		for (int i = 0; i < server_files.size(); i++)
+		for (set_icase::iterator iter = server_files.begin(); iter != server_files.end(); iter++)
 		{
-			string file = server_files[i];
-			if (get_ext(file) != "res")
+			string file = *iter;
+			if (get_ext(*iter) != "res")
 			{
 				if (!contentExists(file, true))
 					continue;
@@ -734,7 +715,7 @@ int write_map_resources(string map)
 		fout2.close();
 	}
 
-	if (all_resources.size() == 0 || (all_resources.size() == 1 && get_ext(all_resources[0]) == "res"))
+	if (all_resources.size() == 0 || (all_resources.size() == 1 && get_ext(*all_resources.begin()) == "res"))
 	{
 		log("No .res file needed. Map uses default content only.\n");
 		log_close();
@@ -744,17 +725,18 @@ int write_map_resources(string map)
 	// remove+write missing files
 	missing = 0;
 	ofstream fmiss;
-	for (int i = 0; i < all_resources.size(); i++)
+	for (set_icase::iterator iter = all_resources.begin(); iter != all_resources.end(); )
 	{
-		string file = all_resources[i];
-		if (!contentExists(file, false) && get_ext(file) != "res")
+		string file = *iter;
+		if (!contentExists(file, false) && get_ext(*iter) != "res")
 		{
 			if (g_tracemap_req[file].size())
 			{
 				if (missing == 0) log("\n");
-				vector<string>& refs = g_tracemap_req[file];
+				set<string>& refs = g_tracemap_req[file];
 				log("Missing file \"" + file + "\" referenced in:\n");
-				for (int i = 0; i < refs.size(); i++)
+				int i = 0;
+				for (set<string>::iterator iter = refs.begin(); iter != refs.end(); iter++, i++)
 				{
 					int left_to_print = refs.size() - i;
 					if (!print_all_references && i == (max_reference_prints - 1) && left_to_print > 1)
@@ -762,7 +744,7 @@ int write_map_resources(string map)
 						log("\t" + to_string(left_to_print) + " more...\n");
 						break;
 					}
-					log("\t" + refs[i] + "\n");
+					log("\t" + *iter + "\n");
 				}
 				log("\n");
 			}
@@ -778,12 +760,13 @@ int write_map_resources(string map)
 			}
 
 			if (!include_missing)
-			{
-				all_resources.erase(all_resources.begin() + i);
-				i--;
-			}
+				all_resources.erase(iter++);
+			else
+				iter++;
 			missing++;
 		}
+		else
+			iter++;
 	}
 	if (fmiss.is_open())
 		fmiss.close();
@@ -791,23 +774,24 @@ int write_map_resources(string map)
 	// remove optional server files
 	if (client_files_only)
 	{
-		for (int i = 0; i < all_resources.size(); i++)
+		for (set_icase::iterator iter = all_resources.begin(); iter != all_resources.end();)
 		{
-			if (isServerFile(all_resources[i]))
+			if (isServerFile(*iter))
 			{
 				if (print_skip)
-					log("Skip optional: " + all_resources[i] + "\n");
+					log("Skip optional: " + *iter + "\n");
 				numskips++;
 				if (unused_wads == 0 && numskips == 0)
 					log("\n");
 
-				all_resources.erase(all_resources.begin() + i);
-				i--;
+				all_resources.erase(iter++);
 			}
+			else
+				iter++;
 		}
 	}
 
-	if ((!just_testing && all_resources.size() == 0) || (all_resources.size() == 1 && get_ext(all_resources[0]) == "res"))
+	if ((!just_testing && all_resources.size() == 0) || (all_resources.size() == 1 && get_ext(*all_resources.begin()) == "res"))
 	{
 		if (missing)
 			log("No .res file generated. All required files are missing!\n");
@@ -829,9 +813,9 @@ int write_map_resources(string map)
 	fout << resguy_header;
 
 	int numEntries = 0;
-	for (int i = 0; i < all_resources.size(); i++)
+	for (set_icase::iterator iter = all_resources.begin(); iter != all_resources.end(); iter++)
 	{
-		string file = all_resources[i];
+		string file = *iter;
 		if (!just_testing || series_mode)
 		{
 			contentExists(file, true);
@@ -841,7 +825,7 @@ int write_map_resources(string map)
 				file = file.substr(file.find_first_of("\\/")+1);
 			}
 			if (series_mode)
-				push_unique(series_client_files, file);
+				series_client_files.insert(*iter);
 			else
 				fout << file << endl;
 		}
@@ -862,7 +846,7 @@ int write_map_resources(string map)
 		log("Test finished. " + to_string(numEntries) + " files found. " + to_string(missing) + " files missing. " + to_string(numskips) + " files skipped.\n\n");
 	}
 
-	push_unique(archive_files, map_path + map + ".res");
+	archive_files.insert(map_path + map + ".res");
 
 	log_close();
 	return 0;
@@ -983,13 +967,13 @@ bool archive_output(string archive_name)
 	if (make_archive)
 	{
 		vector<string> temp_files; // files that are temporarily copied to the current dir
-		vector<string> temp_dirs; // directories that are temporarily created in the current dir
+		set_icase temp_dirs; // directories that are temporarily created in the current dir
 		string list_file = "resguy_7zip_file_list.txt";
 		ofstream fout;
 		fout.open (list_file, ios::out | ios::trunc);
-		for (int i = 0; i < archive_files.size(); i++)
+		for (set<string>::iterator iter = archive_files.begin(); iter != archive_files.end(); iter++)
 		{
-			string path = archive_files[i];
+			string path = *iter;
 
 			if (path[0] == '.' && path[1] == '.' && path[2] == '/')
 			{
@@ -1068,12 +1052,12 @@ bool archive_output(string archive_name)
 		remove("resguy_7zip_file_list.txt");
 		for (int i = 0; i < temp_files.size(); i++)
 			remove(temp_files[i].c_str());
-		for (int i = 0; i < temp_dirs.size(); i++)
+		for (set_icase::iterator iter = temp_dirs.begin(); iter != temp_dirs.end(); iter++)
 		{
 			#if defined(WIN32) || defined(_WIN32)
-				RemoveDirectory(temp_dirs[i].c_str());
+				RemoveDirectory((*iter).c_str());
 			#else
-				rmdir(temp_dirs[i].c_str());
+				rmdir((*iter).c_str());
 			#endif
 		}
 		cout << "Done\n";
@@ -1295,7 +1279,6 @@ int main(int argc, char* argv[])
 	{
 		cout << "Writing series .res files for " << files.size() << " maps (" << 
 				series_client_files.size() << " entries)\n\n";
-		sort( series_client_files.begin(), series_client_files.end(), stringCompare );
 		for (int i = 0; i < files.size(); i++)
 		{
 			string f = bsp_name(files[i]);
@@ -1306,11 +1289,11 @@ int main(int argc, char* argv[])
 			ofstream fout;
 			fout.open(bsp.path + f + ".res", ios::out | ios::trunc);
 			fout << resguy_header;
-			for (int k = 0; k < series_client_files.size(); k++)
+			for (set_icase::iterator iter = series_client_files.begin(); iter != series_client_files.end(); iter++)
 			{
-				if (series_client_files[k] == bsp.path + f + ".bsp")
+				if (*iter == bsp.path + f + ".bsp")
 					continue; // only the other bsps should be listed
-				fout << series_client_files[k] << endl;
+				fout << *iter << endl;
 			}
 			fout.close();
 		}

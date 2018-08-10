@@ -18,10 +18,10 @@ static const char * g_valid_exts[NUM_VALID_EXTS] = {
 	"as"
 };
 
-extern str_map_vector default_wads;
-extern vector<string> server_files; // files used by server but not needed by client
-extern vector<string> default_content; // files included with the base game
-extern vector<string> parsed_scripts;
+extern str_map_set default_wads;
+extern set_icase server_files; // files used by server but not needed by client
+extern set<string> default_content; // files included with the base game
+extern set<string> parsed_scripts;
 extern int unused_wads;
 extern bool client_files_only;
 extern bool print_skip;

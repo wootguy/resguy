@@ -28,8 +28,8 @@ void OutputDebugString(const char *str) {}
 
 vector<string> printlog;
 
-str_map_vector g_tracemap_req;
-str_map_vector g_tracemap_opt;
+str_map_set g_tracemap_req;
+str_map_set g_tracemap_opt;
 
 const int numContentDirs = 5;
 const char * contentDirs[numContentDirs] = {"svencoop_hd", "svencoop_addon", "svencoop_downloads", "svencoop", "valve"};
@@ -68,9 +68,9 @@ void trace_missing_file(string file, string reference, bool required)
 	if (contentExists(file, false))
 		return;
 
-	str_map_vector& trace = required ? g_tracemap_req : g_tracemap_opt;
+	str_map_set& trace = required ? g_tracemap_req : g_tracemap_opt;
 
-	push_unique(trace[file], reference);
+	trace[file].insert(reference);
 }
 
 uint64 getSystemTime()
@@ -98,9 +98,9 @@ string replaceChar(string s, char c, char with)
 	return s;
 }
 
-vector<string> get_replacement_file_resources(string fname)
+set_icase get_replacement_file_resources(string fname)
 {
-	vector<string> resources;
+	set_icase resources;
 
 	contentExists(fname, true); // fix caps
 
@@ -158,10 +158,10 @@ vector<string> get_replacement_file_resources(string fname)
 	return resources;
 }
 
-vector<string> get_sentence_file_resources(string fname, string trace_path)
+set_icase get_sentence_file_resources(string fname, string trace_path)
 {
-	vector<string> resources;
-	str_map_vector references;
+	set_icase resources;
+	str_map_set references;
 
 	contentExists(fname, true); // fix caps
 
@@ -239,7 +239,7 @@ vector<string> get_sentence_file_resources(string fname, string trace_path)
 					snd = normalize_path("sound/" + folder + snd + ".wav");
 				}
 				push_unique(resources, snd);
-				push_unique(references[snd], sentence_name);
+				references[snd].insert(sentence_name);
 			}
 		}
 	}
@@ -247,17 +247,17 @@ vector<string> get_sentence_file_resources(string fname, string trace_path)
 	//	cout << "Failed to open: " << fname << endl; // not needed - file will be flagged as missing later
 	myfile.close();
 
-	for (int i = 0; i < resources.size(); i++)
+	for (set_icase::iterator iter = resources.begin(); iter != resources.end(); iter++)
 	{
-		vector<string> refs = references[resources[i]];
+		set<string> refs = references[*iter];
 		string sentence_name;
 		if (refs.size() > 0)
 		{
-			sentence_name = " --> " + refs[0];
+			sentence_name = " --> " + *refs.begin();
 			if (refs.size() > 1)
 				sentence_name += " (and " + to_string(refs.size()-1) + " others)";
 		}
-		trace_missing_file(resources[i], trace_path + sentence_name, true);
+		trace_missing_file(*iter, trace_path + sentence_name, true);
 	}
 
 	return resources;
@@ -503,9 +503,9 @@ vector<string> parse_script_arg(string arg, string fname, string err)
 	return ret;
 }
 
-vector<string> get_script_dependencies(string fname, vector<string>& searchedScripts)
+set_icase get_script_dependencies(string fname, set<string>& searchedScripts)
 {
-	vector<string> resources;
+	set_icase resources;
 
 	string folder = "scripts/maps/";
 
@@ -573,10 +573,11 @@ vector<string> get_script_dependencies(string fname, vector<string>& searchedScr
 			{
 				// .as extension is optional in cfg file, but required to be ommitted in #include statements
 				string include = normalize_path(folder + readQuote(line) + ".as");
-				if (push_unique(searchedScripts, include))
+				if (searchedScripts.find(include) == searchedScripts.end())
 				{
 					push_unique(resources, include);
-					insert_unique(get_script_dependencies(include, searchedScripts), resources);
+					set_icase includeRes = get_script_dependencies(include, searchedScripts);
+					resources.insert(includeRes.begin(), includeRes.end());
 				}
 			}
 
@@ -606,8 +607,8 @@ vector<string> get_script_dependencies(string fname, vector<string>& searchedScr
 					// handle case where the full path is broken up into separate string literals for no reason
 					string tmpVal = normalize_path(val);
 					string sound_val = "sound/" + tmpVal;
-					bool valExists = !is_unique(default_content, tmpVal) || contentExists(tmpVal, false);
-					bool soundValExists = !is_unique(default_content, sound_val) || contentExists(sound_val, false);
+					bool valExists = default_content.find(tmpVal) != default_content.end() || contentExists(tmpVal, false);
+					bool soundValExists = default_content.find(sound_val) != default_content.end() || contentExists(sound_val, false);
 					if (values.size() > 1 && !valExists && !soundValExists)
 					{
 						string concatVal = "";
@@ -619,27 +620,14 @@ vector<string> get_script_dependencies(string fname, vector<string>& searchedScr
 							
 							tmpVal = normalize_path(val);
 							sound_val = "sound/" + tmpVal;
-							valExists = !is_unique(default_content, tmpVal) || contentExists(tmpVal, false);
-							soundValExists = !is_unique(default_content, sound_val) || contentExists(sound_val, false);
+							valExists = default_content.find(tmpVal) != default_content.end() || contentExists(tmpVal, false);
+							soundValExists = default_content.find(sound_val) != default_content.end() || contentExists(sound_val, false);
 						}
 					}
 
 					if (ext == "mdl")
 					{
-						val = normalize_path(val);
-						trace_missing_file(val, trace, true);
-						push_unique(resources, val);
-
-						Mdl model = Mdl(val);
-						if (model.valid)
-						{
-							vector<string> model_res = model.get_resources();
-							for (int k = 0; k < model_res.size(); k++)
-							{
-								trace_missing_file(model_res[k], trace + " --> " + val, true);
-								push_unique(resources, model_res[k]);
-							}
-						}
+						add_model_resources(normalize_path(val), resources, trace);
 					}
 					else if (ext == "spr")
 					{
@@ -757,32 +745,50 @@ vector<string> get_script_dependencies(string fname, vector<string>& searchedScr
 	return resources;
 }
 
-void add_script_resources(string script, vector<string>& resources, string traceFrom)
+void add_script_resources(string script, set_icase& resources, string traceFrom)
 {
-	if (find(parsed_scripts.begin(), parsed_scripts.end(), script) != parsed_scripts.end())
+	if (parsed_scripts.find(script) != parsed_scripts.end())
 	{
 		// don't process the same script twice
 		return;
 	}
-		
-	push_unique(parsed_scripts, script);
+	
+	parsed_scripts.insert(script);
 	trace_missing_file(script, traceFrom, true);
 	push_unique(server_files, script);
 	push_unique(resources, script);
 
-	vector<string> searchedScripts;
-	vector<string> scripts = get_script_dependencies(script, searchedScripts);
-	for (int i = 0; i < scripts.size(); i++)
+	set<string> searchedScripts;
+	set_icase scripts = get_script_dependencies(script, searchedScripts);
+	for (set_icase::iterator iter = scripts.begin(); iter != scripts.end(); iter++)
 	{
-		bool isScript = get_ext(scripts[i]) == "as";
+		bool isScript = get_ext(*iter) == "as";
 		if (isScript) {
-			trace_missing_file(scripts[i], traceFrom + " --> " + script, true);
-			push_unique(server_files, scripts[i]);
-			push_unique(resources, scripts[i]);
+			trace_missing_file(*iter, traceFrom + " --> " + script, true);
+			push_unique(server_files, *iter);
+			push_unique(resources, *iter);
 		}
 		else // file is a sound/model and was traced in the dependency function
 		{
-			push_unique(resources, scripts[i]);
+			push_unique(resources, *iter);
+		}
+	}
+}
+
+void add_model_resources(string model_path, set_icase& resources, string traceFrom)
+{
+	// TODO: Don't process the same model twice
+	Mdl model = Mdl(model_path);
+
+	trace_missing_file(model_path, traceFrom, true);
+	push_unique(resources, model_path);
+	if (model.valid)
+	{
+		set_icase model_res = model.get_resources();
+		for (set_icase::iterator iter = model_res.begin(); iter != model_res.end(); iter++)
+		{
+			trace_missing_file(*iter, traceFrom + " --> " + model_path , true);
+			push_unique(resources, *iter);
 		}
 	}
 }
@@ -861,22 +867,19 @@ string normalize_path(string s, bool is_keyvalue)
 	return s;
 }
 
-bool push_unique(vector<string>& list, string val)
+bool push_unique(set_icase& list, string val)
 {
-	if (is_unique(list, val))
+	if (list.find(val) == list.end())
 	{
-		list.push_back(val);
+		list.insert(val);
 		return true;
 	}
 	return false;
 }
 
-bool is_unique(vector<string>& list, string val)
+bool is_unique(set_icase& list, string val)
 {
-	for (int i = 0; i < list.size(); i++)
-		if (strcasecmp(list[i].c_str(), val.c_str()) == 0)
-			return false;
-	return true;
+	return list.find(val) == list.end();
 }
 
 string toLowerCase(string str)

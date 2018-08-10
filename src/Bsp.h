@@ -63,7 +63,7 @@ public:
 	~Bsp();
 
 	// find all models, sprites, sounds, wads, and skies referenced in the bsp
-	vector<string> get_resources();
+	set_icase get_resources();
 
 private:
 
@@ -71,5 +71,5 @@ private:
 
 	void load_ents();
 
-	vector<string> get_textures();
+	set_icase get_textures();
 };

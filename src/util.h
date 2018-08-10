@@ -5,6 +5,8 @@
 #include <iostream>
 #include <fstream>
 #include <unordered_map>
+#include <map>
+#include <set>
 
 #ifdef _WIN32
 #include <string.h> 
@@ -31,10 +33,18 @@ enum read_dir
     FROM_END	// parse the string end to beginning (backwards)
 };
 
-typedef unordered_map< string, vector<string> > str_map_vector;
+struct InsensitiveCompare { 
+    bool operator() (const std::string& a, const std::string& b) const {
+        return strcasecmp(a.c_str(), b.c_str()) < 0;
+    }
+};
 
-extern str_map_vector g_tracemap_req;
-extern str_map_vector g_tracemap_opt;
+typedef unordered_map< string, vector<string> > str_map_vector;
+typedef unordered_map< string, set<string> > str_map_set;
+typedef set<string, InsensitiveCompare> set_icase;
+
+extern str_map_set g_tracemap_req;
+extern str_map_set g_tracemap_opt;
 
 static string dummy;
 
@@ -57,24 +67,28 @@ void log_init(string log_file_path);
 void log_close();
 
 // parses a sound/model replacement file and returns all unique resources on the right-hand side
-vector<string> get_replacement_file_resources(string fname);
+set_icase get_replacement_file_resources(string fname);
 
-vector<string> get_sentence_file_resources(string fname, string trace_path);
+set_icase get_sentence_file_resources(string fname, string trace_path);
 
 // parses script for includes of other scripts and resources
-vector<string> get_script_dependencies(string fname, vector<string>& searchedScripts);
+set_icase get_script_dependencies(string fname, set<string>& searchedScripts);
 
-// find all resources included by the script and add them to the requested list
-void add_script_resources(string script, vector<string>& resources, string traceFrom);
+// find all resources included by the script and add them to the resource set
+void add_script_resources(string script, set_icase& resources, string traceFrom);
+
+// find all resources included by the model and add them to the resource set
+void add_model_resources(string model, set_icase& resources, string traceFrom);
 
 // removes '..' from relative paths and replaces all \ slashes with /
 string normalize_path(string s, bool is_keyvalue=false);
 
-// pushes a string into the vector only if it's not already in the list (case insensitive)
-bool push_unique(vector<string>& list, string val);
+// adds the string to the map if it isn't there already (case insensitive check)
+// key = lowercase filename, value = actual filename
+bool push_unique(set_icase& list, string val);
 
 // check if val is in the list (case insensitive)
-bool is_unique(vector<string>& list, string val);
+bool is_unique(set_icase& list, string val);
 
 string toLowerCase(string str);
 

@@ -12,5 +12,5 @@ public:
 	Mdl(string fname);
 	~Mdl();
 
-	vector<string> get_resources();
+	set_icase get_resources();
 };
