@@ -33,6 +33,12 @@ enum read_dir
     FROM_END	// parse the string end to beginning (backwards)
 };
 
+struct FileInfo
+{
+	bool exists;
+	string fnameCaseSensitive; // blank if exists=false
+};
+
 struct InsensitiveCompare 
 { 
     bool operator() (const std::string& a, const std::string& b) const {
@@ -42,12 +48,12 @@ struct InsensitiveCompare
 
 typedef unordered_map< string, vector<string> > str_map_vector;
 typedef unordered_map< string, set<string> > str_map_set;
-typedef unordered_map< string, bool > str_map_bool;
+typedef unordered_map< string, FileInfo > str_map_fileinfo;
 typedef set<string, InsensitiveCompare> set_icase;
 
 extern str_map_set g_tracemap_req;
 extern str_map_set g_tracemap_opt;
-extern str_map_bool file_exist_cache;
+extern str_map_fileinfo file_exist_cache;
 extern set<string, InsensitiveCompare> processed_models;
 
 static string dummy;
@@ -102,6 +108,9 @@ bool push_unique(set_icase& list, string val);
 
 // check if val is in the list (case insensitive)
 bool is_unique(set_icase& list, string val);
+
+// checks if file is in default content set (with some case sensitivity logic)
+bool is_default_file(string file);
 
 string toLowerCase(string str);
 

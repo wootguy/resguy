@@ -42,7 +42,7 @@ char _getch()
 
 using namespace std;
 
-set<string> default_content;
+set<string, InsensitiveCompare> default_content;
 str_map_set default_wads; // texture names in the default wads
 set_icase server_files;
 set<string> archive_files;
@@ -90,14 +90,7 @@ string resguy_header = "// Created with " + version_string + "\n// https://githu
 
 bool stringCompare( const string &left, const string &right )
 {
-	int sz = left.size() > right.size() ? left.size() : right.size();
-
-	for (int i = 0; i < sz; i++)
-	{
-		if (left[i] != right[i])
-			return left[i] < right[i];
-	}
-	return left.size() < right.size();
+	return strcasecmp(left.c_str(), right.c_str()) < 0;
 }
 
 void load_default_content()
@@ -109,7 +102,7 @@ void load_default_content()
 	bool parsingTexNames = false;
 	string wad_name;
 	string default_content_path = "resguy_default_content.txt";
-	fileExists(default_content_path, true); // cheack caps
+	fileExists(default_content_path, true); // check caps
 
 	ifstream myfile(default_content_path);
 	if (myfile.is_open())
@@ -572,7 +565,7 @@ int write_map_resources(string map)
 	int numskips = 0;
 	for (set_icase::iterator iter = all_resources.begin(); iter != all_resources.end();)
 	{
-		if (default_content.find(*iter) != default_content.end())
+		if (is_default_file(*iter))
 		{
 			if (print_skip)
 			{
