@@ -31,7 +31,7 @@ vector<string> printlog;
 str_map_set g_tracemap_req;
 str_map_set g_tracemap_opt;
 
-str_map_bool file_exist_cache;
+str_map_fileinfo file_exist_cache;
 set<string, InsensitiveCompare> processed_models;
 
 const int numContentDirs = 5;
@@ -603,8 +603,8 @@ set_icase get_script_dependencies(string fname, set<string>& searchedScripts)
 					// handle case where the full path is broken up into separate string literals for no reason
 					string tmpVal = normalize_path(val);
 					string sound_val = "sound/" + tmpVal;
-					bool valExists = default_content.find(tmpVal) != default_content.end() || contentExists(tmpVal, false);
-					bool soundValExists = default_content.find(sound_val) != default_content.end() || contentExists(sound_val, false);
+					bool valExists = is_default_file(tmpVal) || contentExists(tmpVal, false);
+					bool soundValExists = is_default_file(sound_val) || contentExists(sound_val, false);
 					if (values.size() > 1 && !valExists && !soundValExists)
 					{
 						string concatVal = "";
@@ -616,8 +616,8 @@ set_icase get_script_dependencies(string fname, set<string>& searchedScripts)
 							
 							tmpVal = normalize_path(val);
 							sound_val = "sound/" + tmpVal;
-							valExists = default_content.find(tmpVal) != default_content.end() || contentExists(tmpVal, false);
-							soundValExists = default_content.find(sound_val) != default_content.end() || contentExists(sound_val, false);
+							valExists = is_default_file(tmpVal) || contentExists(tmpVal, false);
+							soundValExists = is_default_file(sound_val) || contentExists(sound_val, false);
 						}
 					}
 
@@ -868,36 +868,34 @@ string normalize_path(string s, bool is_keyvalue)
 	}
 
 	s = replaceChar(s, '\\', '/');
-	if (s.find("..") != string::npos)
+
+	vector<string> parts = splitString(s, "/");
+	int depth = 0;
+	for (int i = 0; i < parts.size(); i++)
 	{
-		vector<string> parts = splitString(s, "/");
-		int depth = 0;
-		for (int i = 0; i < parts.size(); i++)
+		depth++;
+		if (parts[i] == "..")
 		{
-			depth++;
-			if (parts[i] == "..")
+			depth--;
+			if (depth == 0)
 			{
-				depth--;
-				if (depth == 0)
-				{
-					continue; // can only .. up to Sven Co-op, and not any further
-				}
-				else if (i > 0)
-				{
-					parts.erase(parts.begin() + i);
-					parts.erase(parts.begin() + (i-1));
-					i -= 2;
-				}
+				continue; // can only .. up to Sven Co-op, and not any further
+			}
+			else if (i > 0)
+			{
+				parts.erase(parts.begin() + i);
+				parts.erase(parts.begin() + (i-1));
+				i -= 2;
 			}
 		}
-		s = "";
-		for (int i = 0; i < parts.size(); i++)
-		{
-			if (i > 0) {
-				s += '/';
-			}
-			s += parts[i];
+	}
+	s = "";
+	for (int i = 0; i < parts.size(); i++)
+	{
+		if (i > 0) {
+			s += '/';
 		}
+		s += parts[i];
 	}
 
 	if (!case_sensitive_mode)
@@ -929,6 +927,18 @@ bool is_unique(set_icase& list, string val)
 	return list.find(val) == list.end();
 }
 
+bool is_default_file(string file)
+{
+	auto defaultFile = default_content.find(file);
+	if (defaultFile != default_content.end())
+	{
+		if (case_sensitive_mode)
+			return std::equal((*defaultFile).rbegin(), (*defaultFile).rend(), file.rbegin());
+		return true;
+	}
+	return false;
+}
+
 string toLowerCase(string str)
 {
 	transform(str.begin(), str.end(), str.begin(), ::tolower);
@@ -938,23 +948,29 @@ string toLowerCase(string str)
 // Note: Paths with ".." in them need to be normalize_path()'d before calling this (Linux only)
 bool fileExists(string& file, bool fix_path, string from_path, int from_skip)
 {
-	auto exist = file_exist_cache.find(file);
-	if (exist != file_exist_cache.end())
-		return exist->second;
+	auto finfo = file_exist_cache.find(file);
+	if (finfo != file_exist_cache.end())
+	{
+		if (fix_path && finfo->second.exists)
+			file = finfo->second.fnameCaseSensitive;
+		return finfo->second.exists;
+	}
 
 	if (FILE *f = fopen(file.c_str(), "r")) {
 		fclose(f);
-		file_exist_cache[file] = true;
+		if (from_skip == 0)
+			file_exist_cache[file] = {true, file};
 		return true;
 	}
 
 #if defined(WIN32) || defined(_WIN32)
-	file_exist_cache[file] = false;
+	file_exist_cache[file] = { false, "" };
 	return false;
 #else
 	if (case_sensitive_mode)
 	{
-		file_exist_cache[file] = false;
+		if (from_skip == 0)
+			file_exist_cache[file] = { false, "" };
 		return false;
 	}
 	
@@ -976,7 +992,8 @@ bool fileExists(string& file, bool fix_path, string from_path, int from_skip)
 			DIR * dir = opendir(path.c_str());
 			if (!dir)
 			{
-				file_exist_cache[file] = false;
+				if (from_skip == 0)
+					file_exist_cache[file] = { false, "" };
 				return false; // shouldn't ever happen
 			}
 
@@ -992,16 +1009,22 @@ bool fileExists(string& file, bool fix_path, string from_path, int from_skip)
 					continue;
 		
 				string name = string(entry->d_name);
+
+				string fixedFile = file;
 				if (toLowerCase(name).compare(lowerDir) == 0 && 
-					fileExists(file, fix_path, path + "/" + name, from_skip+1))
+					fileExists(fixedFile, true, path + "/" + name, from_skip+1))
 				{
+					if (fix_path)
+						file = fixedFile;
+					if (from_skip == 0)
+						file_exist_cache[file] = { true, fixedFile };
 					closedir(dir);
-					file_exist_cache[file] = true;
 					return true;
 				}
 			}
 			closedir(dir);
-			file_exist_cache[file] = false;
+			if (from_skip == 0)
+				file_exist_cache[file] = { false, file };
 			return false; // next dir in path doesn't exist
 		}
 	}
@@ -1014,12 +1037,14 @@ bool fileExists(string& file, bool fix_path, string from_path, int from_skip)
 		
 	if(!dir)
 	{
-		file_exist_cache[file] = false;
+		if (from_skip == 0)
+			file_exist_cache[file] = { false, file };
 		return false;
 	}
 	
 	string lowerFile = toLowerCase(filename);
 	bool found = false;
+	string newFile = file;
 	while(true)
 	{
 		dirent *entry = readdir(dir);
@@ -1032,21 +1057,21 @@ bool fileExists(string& file, bool fix_path, string from_path, int from_skip)
 		string name = string(entry->d_name);
 		if (toLowerCase(name).compare(lowerFile) == 0)
 		{
-			if (fix_path)
-			{
-				string oldFile = file;
-				if (path.length() > 1 || path[0] != '.')
-					file = path + '/' + name;
-				else
-					file = name;
+			string oldFile = file;
+			if (path.length() > 1 || path[0] != '.')
+				newFile = path + '/' + name;
+			else
+				newFile = name;
 				//cout << "Case mismatch: " << oldFile << " -> " << file << endl;
-			}
+			if (fix_path)
+				file = newFile;
 			found = true;
 			break;
 		}
 	}
 	closedir(dir);
-	file_exist_cache[file] = found;
+	if (from_skip == 0)
+		file_exist_cache[file] = { found, found ? newFile : "" };
 	return found;
 #endif
 }
