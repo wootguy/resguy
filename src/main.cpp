@@ -114,11 +114,9 @@ void load_default_content()
 	ifstream myfile(default_content_path);
 	if (myfile.is_open())
 	{
-		while ( !myfile.eof() )
+		string line;
+		while (getline(myfile, line))
 		{
-			string line;
-			getline (myfile,line);
-
 			line = trimSpaces(line);
 			if (line.find("//") == 0 || line.length() == 0)
 				continue;
@@ -245,11 +243,9 @@ set_icase get_cfg_resources(string map)
 	ifstream myfile(cfg_path);
 	if (myfile.is_open())
 	{
-		while ( !myfile.eof() )
+		string line;
+		while (getline(myfile, line))
 		{
-			string line;
-			getline (myfile,line);
-
 			line = trimSpaces(line);
 			if (line.find("//") == 0 || line.length() == 0)
 				continue;
@@ -331,10 +327,9 @@ set_icase get_detail_resources(string map)
 	if (file.is_open())
 	{
 		int line_num = 0;
-		while ( !file.eof() )
+		string line;
+		while (getline(file, line))
 		{
-			string line;
-			getline (file,line);
 			line_num++;
 
 			line = trimSpaces(line);

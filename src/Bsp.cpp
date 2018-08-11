@@ -150,10 +150,9 @@ set_icase Bsp::get_resources()
 					{
 						int lineNum = 0;
 						bool in_func_body = false;
-						while ( !file.eof() )
+						string line;
+						while (getline(file, line))
 						{
-							string line;
-							getline (file,line);
 							lineNum++;
 
 							// strip comments
@@ -430,10 +429,9 @@ void Bsp::load_ents()
 	Entity* ent = NULL;
 
 	string line = "";
-	while (!in.eof())
+	while (getline(in, line))
 	{
 		lineNum++;
-		getline (in,line);
 		if (line.length() < 1 || line[0] == '\n')
 			continue;
 
