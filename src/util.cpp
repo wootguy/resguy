@@ -110,11 +110,9 @@ set_icase get_replacement_file_resources(string fname)
 	ifstream myfile(fname);
 	if (myfile.is_open())
 	{
-		while ( !myfile.eof() )
+		string line;
+		while (getline(myfile, line))
 		{
-			string line;
-			getline (myfile,line);
-
 			line = trimSpaces(line);
 			if (line.find("//") == 0)
 				continue;
@@ -171,11 +169,9 @@ set_icase get_sentence_file_resources(string fname, string trace_path)
 	ifstream myfile(fname);
 	if (myfile.is_open())
 	{
-		while ( !myfile.eof() )
+		string line;
+		while (getline(myfile, line))
 		{
-			string line;
-			getline (myfile,line);
-
 			line = trimSpaces(line);
 			if (line.find("//") == 0 || line.size() == 0)
 				continue;
@@ -307,10 +303,9 @@ vector<string> parse_script_arg(string arg, string fname, string err)
 		{
 			int lineNum = 0;
 			bool in_array = false;
-			while ( !file.eof() )
+			string line;
+			while (getline(file, line))
 			{
-				string line;
-				getline (file,line);
 				lineNum++;
 
 				line = trimSpaces(line);
@@ -398,10 +393,9 @@ vector<string> parse_script_arg(string arg, string fname, string err)
 		{
 			int lineNum = 0;
 			bool in_func_body = false;
-			while ( !file.eof() )
+			string line;
+			while (getline(file, line))
 			{
-				string line;
-				getline (file,line);
 				lineNum++;
 
 				line = trimSpaces(line);
@@ -466,10 +460,9 @@ vector<string> parse_script_arg(string arg, string fname, string err)
 		if (file.is_open())
 		{
 			int lineNum = 0;
-			while ( !file.eof() )
+			string line;
+			while (getline(file, line))
 			{
-				string line;
-				getline (file,line);
 				lineNum++;
 
 				line = trimSpaces(line);
@@ -528,10 +521,9 @@ set_icase get_script_dependencies(string fname, set<string>& searchedScripts)
 	{
 		int lineNum = 0;
 		bool inCommentBlock = false;
-		while ( !myfile.eof() )
+		string line;
+		while (getline(myfile, line))
 		{
-			string line;
-			getline (myfile,line);
 			lineNum++;
 
 			line = trimSpaces(line);
@@ -578,6 +570,7 @@ set_icase get_script_dependencies(string fname, set<string>& searchedScripts)
 				string include = normalize_path(folder + readQuote(line) + ".as");
 				if (searchedScripts.find(include) == searchedScripts.end())
 				{
+					searchedScripts.insert(include);
 					push_unique(resources, include);
 					set_icase includeRes = get_script_dependencies(include, searchedScripts);
 					resources.insert(includeRes.begin(), includeRes.end());
@@ -712,10 +705,9 @@ set_icase get_script_dependencies(string fname, set<string>& searchedScripts)
 					{
 						int lineNum = 0;
 						bool in_func_body = false;
-						while ( !file.eof() )
+						string line;
+						while (getline(file, line))
 						{
-							string line;
-							getline (file,line);
 							lineNum++;
 
 							// strip comments

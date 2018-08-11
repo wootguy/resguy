@@ -89,9 +89,17 @@ set_icase Mdl::get_resources()
 
 	push_unique(resources, model_path + name + ".mdl");
 
+	int numTextures = mdlHead.numtextures;
+	bool uses_t_model = numTextures == 0;
+
 	// animation models (01/02/03.mdl)
 	bool missing_animations = false;
-	if (mdlHead.numseqgroups > 1)
+	if (mdlHead.numseqgroups >= 10000)
+	{
+		log("ERROR: Too many seqgroups (" + to_string(mdlHead.numseqgroups) + ") for model: " + fname + "\n");
+		goto cleanup;
+	}
+	else if (mdlHead.numseqgroups > 1)
 	{
 		for (int m = 1; m < mdlHead.numseqgroups; m++)
 		{
@@ -102,10 +110,7 @@ set_icase Mdl::get_resources()
 		}
 	}
 
-
 	// T model
-	int numTextures = mdlHead.numtextures;
-	bool uses_t_model = numTextures == 0;
 	if (numTextures == 0)
 	{
 		string t_path = model_path + name + "t.mdl";
@@ -123,7 +128,7 @@ set_icase Mdl::get_resources()
 			fin.read((char*)&mod, sizeof(mstudiomodel_t));
 			if (fin.eof())
 			{
-				log("ERROR: Failed to load body " + to_string(i) + "/" + to_string(bod.nummodels) + " for model: " + fname);
+				log("ERROR: Failed to load body " + to_string(i) + "/" + to_string(bod.nummodels) + " for model: " + fname + "\n");
 				goto cleanup;
 			}
 			if (mod.nummesh != 0)
@@ -146,7 +151,7 @@ set_icase Mdl::get_resources()
 		fin.read((char*)&seq, sizeof(mstudioseqdesc_t));
 		if (fin.eof())
 		{
-			log("ERROR: Failed to load sequence " + to_string(i) + "/" + to_string(mdlHead.numseq) +" for model: " + fname);
+			log("ERROR: Failed to load sequence " + to_string(i) + "/" + to_string(mdlHead.numseq) +" for model: " + fname + "\n");
 			goto cleanup;
 		}
 	
@@ -157,7 +162,7 @@ set_icase Mdl::get_resources()
 			fin.read((char*)&evt, sizeof(mstudioevent_t));
 			if (fin.eof())
 			{
-				log("ERROR: Failed to load event " + to_string(k) + "/" + to_string(seq.numevents) + " for model: " + fname);
+				log("ERROR: Failed to load event " + to_string(k) + "/" + to_string(seq.numevents) + " for model: " + fname + "\n");
 				goto cleanup;
 			}
 
@@ -192,10 +197,9 @@ set_icase Mdl::get_resources()
 				if (file.is_open())
 				{
 					int line_num = 0;
-					while ( !file.eof() )
+					string line;
+					while (getline(file, line))
 					{
-						string line;
-						getline (file,line);
 						line_num++;
 
 						line = trimSpaces(line);
