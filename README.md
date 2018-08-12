@@ -15,6 +15,7 @@ Resguy is similar to RESgen and FLRGen, but can find all content that Sven Co-op
 - Sounds listed in custom sentence files
 - Sounds listed in Global Sound Replacement files
 - Models listed in Global Model Replacement files
+- Custom materials file
 - Player models and preview images for the names listed in the "forcepmodels" setting
 
 Resguy will find and process the following files but __NOT__ include them in the .res file. These files are excluded because clients don't need them, and some can't be sent to clients anyway. You can include these with "-extra" if you really want to:
@@ -24,13 +25,14 @@ Resguy will find and process the following files but __NOT__ include them in the
 - CFG files (SC does not allow .cfg files to be transfered to clients)
 - map_script file with all its #includes (.as files are also not allowed to be transfered to clients)
 - Custom sentence files
-- Custom materials file
 - Global model/sound replacement files
 - Per-monster sound replacment files
 
 Sven Co-op uses FMOD which supports a large variety of audio formats. These are the types of sounds resguy will find:
 
-- aiff, asf, asx, au, dls, flac, fsb, it, m3u, mid, midi, mod, mp2, mp3, ogg, pls, s3m, vag, wav, wax, wma, xm
+- asf, asx, au, dls, fsb, m3u, mid, mod, mp2, mp3, ogg, pls, s3m, vag, wav, wax, wma, xma
+- Note: The following formats are also supported by FMOD, but sven does not allow them to be transferred to clients, and so won't be included:
+  - aiff, flac, it, midi, xm
 
 # Usage:
 
