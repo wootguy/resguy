@@ -2,15 +2,13 @@
 #include "util.h"
 
 // all valid file extensions (should include everything FMOD supports)
-#define NUM_SOUND_EXTS 17
+#define NUM_SOUND_EXTS 22
 #define NUM_VALID_EXTS (11 + NUM_SOUND_EXTS)
 static const char * g_valid_exts[NUM_VALID_EXTS] = {
 	// sound files
 	"asf", "asx", "dls", "fsb",  "m3u", "mid", "mod", "mp2", "pls", "s3m", 
 	"vag", "wax", "wma", "wav", "ogg", "mp3", "au",
-
-	// Blacklisted in sven (but shouldn't be):
-	// "aiff", "flac", "it", "midi", "xm",
+	"aiff", "flac", "it", "midi", "xm",
 
 	// everything else
 	"mdl", "spr", "res", "txt", "tga", 
