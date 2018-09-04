@@ -85,7 +85,7 @@ bool chose_opts = false;
 string target_maps = "";
 bool map_not_found = false;
 
-string version_string = "resguy v8 WIP (August 2018)";
+string version_string = "resguy v8 (September 2018)";
 string resguy_header = "// Created with " + version_string + "\n// https://github.com/wootguy/resguy\n\n";
 
 bool stringCompare( const string &left, const string &right )
@@ -137,7 +137,7 @@ void load_default_content()
 			if (parsingTexNames)
 				default_wads[wad_name].insert(toLowerCase(line));
 			else
-				default_content.insert(toLowerCase(line));
+				default_content.insert(line);
 		}
 		system(CLEAR_COMMAND);
 	}
