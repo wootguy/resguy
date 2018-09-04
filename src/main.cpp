@@ -1223,6 +1223,14 @@ int main(int argc, char* argv[])
 		files.push_back(map);
 		int ret = write_map_resources(map);
 
+		// reset globals
+		server_files.clear();
+		unused_wads = 0;
+		g_tracemap_req.clear();
+		g_tracemap_opt.clear();
+		parsed_scripts.clear();
+		processed_models.clear();
+
 		if (ret == 1) goto ask_for_map;
 		if (ret == -1) return 0;
 
