@@ -30,9 +30,7 @@ Resguy will find and process the following files but __NOT__ include them in the
 
 Sven Co-op uses FMOD which supports a large variety of audio formats. These are the types of sounds resguy will find:
 
-- asf, asx, au, dls, fsb, m3u, mid, mod, mp2, mp3, ogg, pls, s3m, vag, wav, wax, wma, xma
-- Note: The following formats are also supported by FMOD, but sven does not allow them to be transferred to clients, and so won't be included:
-  - aiff, flac, it, midi, xm
+- aiff, asf, asx, au, dls, flac, fsb, it, m3u, mid, midi, mod, mp2, mp3, ogg, pls, s3m, vag, wav, wax, wma, xm, xma
 
 # Usage:
 
