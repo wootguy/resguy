@@ -929,14 +929,7 @@ bool is_unique(set_icase& list, string val)
 
 bool is_default_file(string file)
 {
-	auto defaultFile = default_content.find(file);
-	if (defaultFile != default_content.end())
-	{
-		if (case_sensitive_mode)
-			return std::equal((*defaultFile).rbegin(), (*defaultFile).rend(), file.rbegin());
-		return true;
-	}
-	return false;
+	return default_content.find(file) != default_content.end();
 }
 
 string toLowerCase(string str)
