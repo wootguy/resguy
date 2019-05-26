@@ -45,6 +45,7 @@ using namespace std;
 set<string, InsensitiveCompare> default_content;
 str_map_set default_wads; // texture names in the default wads
 set_icase server_files;
+set_icase script_files;
 set<string> archive_files;
 set_icase series_client_files;
 set<string> parsed_scripts; // prevent scanning the same file more than once
@@ -57,6 +58,7 @@ bool print_all_references = false;
 bool print_skip = false;
 bool quiet_mode = false;
 bool client_files_only = true; // don't include files not needed by clients (e.g. motd, .res file, scripts)
+bool ignore_script_files = true;
 bool write_separate_server_files = false; // if client_files_only is on, the server files will be written to mapname.res2
 bool write_separate_missing = false;
 bool include_missing = false;
@@ -70,8 +72,8 @@ const char * arg_defs[NUM_ARG_DEFS][2] = {
 	{"test", "Don't write any .res files, just check for problems"},
 	{"allrefs", "List all references for missing files"},
 	{"printskip", "Print content that was skipped"},
-	{"extra", "Write server files"},
-	{"extra2", "Write server files to a separate .res2 file"},
+	{"extra", "Write optional files"},
+	{"extra2", "Write optional files to a separate .res2 file"},
 	{"missing", "Write missing files"},
 	{"missing3", "Write missing files to a separate .res3 file"},
 	{"series", "Write the same files into every .res file"},
@@ -85,7 +87,7 @@ bool chose_opts = false;
 string target_maps = "";
 bool map_not_found = false;
 
-string version_string = "resguy v9 (September 2018)";
+string version_string = "resguy v10 (WIP)";
 string resguy_header = "// Created with " + version_string + "\n// https://github.com/wootguy/resguy\n\n";
 
 bool stringCompare( const string &left, const string &right )
@@ -403,6 +405,8 @@ int ask_options()
 	log_enabled = opts[8];
 	case_sensitive_mode = !opts[9];
 
+	ignore_script_files = client_files_only && !write_separate_server_files;
+
 	system(CLEAR_COMMAND);
 	cout << endl;
 
@@ -422,6 +426,36 @@ bool isServerFile(string file)
 			return true;
 	}
 	return false;
+}
+
+bool isReferencedInScript(string file)
+{
+	return script_files.find(file) != script_files.end();
+}
+
+void print_missing_file_trace(string file)
+{
+	if (g_tracemap_req[file].size())
+	{
+		set<string>& refs = g_tracemap_req[file];
+		log("Missing file \"" + file + "\" referenced in:\n");
+		int i = 0;
+		for (set<string>::iterator iter = refs.begin(); iter != refs.end(); iter++, i++)
+		{
+			int left_to_print = refs.size() - i;
+			if (!print_all_references && i == (max_reference_prints - 1) && left_to_print > 1)
+			{
+				log("\t" + to_string(left_to_print) + " more...\n");
+				break;
+			}
+			log("\t" + *iter + "\n");
+		}
+		log("\n");
+	}
+	else
+	{
+		log("Missing file \"" + file + "\" (usage unknown)\n\n");
+	}
 }
 
 // 2 = error
@@ -621,23 +655,20 @@ int write_map_resources(string map)
 			archive_files.insert(full_path);
 	}
 
-	// add server files to archive list
+	// add server files and optional client files to archive list
 	for (set_icase::iterator iter = server_files.begin(); iter != server_files.end(); iter++)
-	{
-		string tmp_path = *iter;
-		string full_path;
-		if (contentExists(tmp_path, true, full_path))
-			archive_files.insert(full_path);
-	}
+		archive_files.insert(*iter);
+	for (set_icase::iterator iter = script_files.begin(); iter != script_files.end(); iter++)
+		archive_files.insert(*iter);
 
-	// write server files 
-	if (write_separate_server_files && !just_testing && server_files.size())
+	// write optional files
+	if (write_separate_server_files && !just_testing && (server_files.size() || script_files.size()))
 	{
 		bool will_write_res = false;
 		int client_file_count = 0;
 		for (set_icase::iterator iter = all_resources.begin(); iter != all_resources.end(); iter++)
 		{
-			if (!isServerFile(*iter))
+			if (!isServerFile(*iter) || isReferencedInScript(*iter))
 			{
 				if (++client_file_count > missing)
 				{
@@ -647,9 +678,15 @@ int write_map_resources(string map)
 			}
 		}
 
+		vector<string> optional_files;
+		for (auto iter = server_files.begin(); iter != server_files.end(); iter++)
+			optional_files.push_back(*iter);
+		for (auto iter = script_files.begin(); iter != script_files.end(); iter++)
+			optional_files.push_back(*iter);
+
 		ofstream fout2;
 		fout2.open(map_path + map + ".res2", ios::out | ios::trunc);
-		for (set_icase::iterator iter = server_files.begin(); iter != server_files.end(); iter++)
+		for (auto iter = optional_files.begin(); iter != optional_files.end(); iter++)
 		{
 			string file = *iter;
 			if (get_ext(*iter) != "res")
@@ -679,70 +716,60 @@ int write_map_resources(string map)
 	// remove+write missing files
 	missing = 0;
 	ofstream fmiss;
-	for (set_icase::iterator iter = all_resources.begin(); iter != all_resources.end(); )
+	vector<set_icase::iterator> missing_files;
+	for (set_icase::iterator iter = all_resources.begin(); iter != all_resources.end(); iter++)
 	{
 		string file = *iter;
-		if (!contentExists(file, false) && get_ext(*iter) != "res")
-		{
-			if (g_tracemap_req[file].size())
-			{
-				if (missing == 0) log("\n");
-				set<string>& refs = g_tracemap_req[file];
-				log("Missing file \"" + file + "\" referenced in:\n");
-				int i = 0;
-				for (set<string>::iterator iter = refs.begin(); iter != refs.end(); iter++, i++)
-				{
-					int left_to_print = refs.size() - i;
-					if (!print_all_references && i == (max_reference_prints - 1) && left_to_print > 1)
-					{
-						log("\t" + to_string(left_to_print) + " more...\n");
-						break;
-					}
-					log("\t" + *iter + "\n");
-				}
-				log("\n");
-			}
-			else
-			{
-				if (unused_wads == 0 && numskips == 0 && missing == 0) log("\n");
-				log("Missing file \"" + file + "\" (usage unknown)\n\n");
-			}
-			if (write_separate_missing) {
-				if (!fmiss.is_open())
-					fmiss.open(map_path + map + ".res3", ios::out | ios::trunc);
-				fmiss << file << endl;
-			}
-
-			if (!include_missing)
-				all_resources.erase(iter++);
-			else
-				iter++;
-			missing++;
+		if (contentExists(file, false))
+			continue;
+		if (get_ext(file) == "res") {
+			continue;
 		}
-		else
-			iter++;
+
+		// hide missing file errors for files referenced in scripts, unless the user expects those to be written somewhere.
+		// Normally, scripts are responsible for precaching what they need. Adding precached files to .res files is redundant.
+		if (ignore_script_files && isReferencedInScript(file)) {
+			continue;
+		}
+
+		if ((g_tracemap_req[file].size() && missing == 0) || (unused_wads == 0 && numskips == 0 && missing == 0))
+			log("\n");
+
+		print_missing_file_trace(file);
+
+		if (write_separate_missing) {
+			if (!fmiss.is_open())
+				fmiss.open(map_path + map + ".res3", ios::out | ios::trunc);
+			fmiss << file << endl;
+		}
+
+		missing_files.push_back(iter);
+		missing++;
+	}
+	if (!include_missing) 
+	{
+		for (auto file : missing_files)
+			all_resources.erase(file);
 	}
 	if (fmiss.is_open())
 		fmiss.close();
 
-	// remove optional server files
-	if (client_files_only)
+	// remove optional server files. Server files are removed after the missing file check because there may be client
+	// files that the server files reference, and we don't want to miss those (a soundlist, for example).
+	for (set_icase::iterator iter = all_resources.begin(); iter != all_resources.end();)
 	{
-		for (set_icase::iterator iter = all_resources.begin(); iter != all_resources.end();)
+		if ((client_files_only && isServerFile(*iter)) || isReferencedInScript(*iter))
 		{
-			if (isServerFile(*iter))
-			{
-				if (print_skip)
-					log("Skip optional: " + *iter + "\n");
-				numskips++;
-				if (unused_wads == 0 && numskips == 0)
-					log("\n");
+			if (print_skip)
+				log("Skip optional: " + *iter + "\n");
+			numskips++;
+			if (unused_wads == 0 && numskips == 0)
+				log("\n");
 
-				all_resources.erase(iter++);
-			}
-			else
-				iter++;
+			all_resources.erase(iter++);
 		}
+		else
+			iter++;
 	}
 
 	if ((!just_testing && all_resources.size() == 0) || (all_resources.size() == 1 && get_ext(*all_resources.begin()) == "res"))
@@ -927,7 +954,13 @@ bool archive_output(string archive_name)
 		fout.open (list_file, ios::out | ios::trunc);
 		for (set<string>::iterator iter = archive_files.begin(); iter != archive_files.end(); iter++)
 		{
-			string path = *iter;
+			string tmp_path = *iter;
+			string path;
+			
+			// print missing files that could be ignored when generating the .res file, but not when creating an archive.
+			if (ignore_script_files && isReferencedInScript(*iter) && !contentExists(tmp_path, true, path))
+				print_missing_file_trace(*iter);
+
 
 			if (path[0] == '.' && path[1] == '.' && path[2] == '/')
 			{
@@ -1117,6 +1150,7 @@ int main(int argc, char* argv[])
 			if (arg == "-series")
 				series_mode = true;
 		}
+		ignore_script_files = client_files_only && !write_separate_server_files;
 	}
 	
 	interactive = map.length() == 0;
@@ -1192,6 +1226,7 @@ int main(int argc, char* argv[])
 			{
 				// reset globals
 				server_files.clear();
+				script_files.clear();
 				unused_wads = 0;
 				g_tracemap_req.clear();
 				g_tracemap_opt.clear();
@@ -1225,6 +1260,7 @@ int main(int argc, char* argv[])
 
 		// reset globals
 		server_files.clear();
+		script_files.clear();
 		unused_wads = 0;
 		g_tracemap_req.clear();
 		g_tracemap_opt.clear();
