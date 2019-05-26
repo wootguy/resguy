@@ -499,7 +499,7 @@ vector<string> parse_script_arg(string arg, string fname, string err)
 	return ret;
 }
 
-set_icase get_script_dependencies(string fname, set<string>& searchedScripts)
+set_icase get_script_dependencies(string fname, set<string>& searchedScripts, set_icase& hud_files)
 {
 	set_icase resources;
 
@@ -572,7 +572,7 @@ set_icase get_script_dependencies(string fname, set<string>& searchedScripts)
 				{
 					searchedScripts.insert(include);
 					push_unique(resources, include);
-					set_icase includeRes = get_script_dependencies(include, searchedScripts);
+					set_icase includeRes = get_script_dependencies(include, searchedScripts, hud_files);
 					resources.insert(includeRes.begin(), includeRes.end());
 				}
 			}
@@ -695,7 +695,7 @@ set_icase get_script_dependencies(string fname, set<string>& searchedScripts)
 				// Note: code duplicated in Bsp.cpp (weapon_custom)
 				string hud_file = "sprites/" + arg2 + "/" + arg1 + ".txt";
 				trace_missing_file(hud_file, trace, true);
-				push_unique(resources, hud_file);
+				push_unique(hud_files, hud_file);
 
 				string hud_path = hud_file;
 				if (contentExists(hud_path, true))
@@ -754,20 +754,29 @@ void add_script_resources(string script, set_icase& resources, string traceFrom)
 	push_unique(resources, script);
 
 	set<string> searchedScripts;
-	set_icase scripts = get_script_dependencies(script, searchedScripts);
-	for (set_icase::iterator iter = scripts.begin(); iter != scripts.end(); iter++)
+	set_icase hud_files;
+	set_icase script_resources = get_script_dependencies(script, searchedScripts, hud_files);
+	for (auto iter = script_resources.begin(); iter != script_resources.end(); iter++)
 	{
 		bool isScript = get_ext(*iter) == "as";
-		if (isScript) {
+		if (isScript) 
+		{
 			trace_missing_file(*iter, traceFrom + " --> " + script, true);
 			push_unique(server_files, *iter);
 			push_unique(resources, *iter);
 		}
 		else // file is a sound/model and was traced in the dependency function
 		{
+			push_unique(script_files, *iter);
 			push_unique(resources, *iter);
 		}
 	}
+
+	// weapon hud files don't need to be precached in scripts, are required by clients, and are not sent automatically.
+	// These are the only script-referenced files that should be added to .res files. Ideally, the scripter would do a PrecacheGeneric
+	// on the HUD file, but no one does that because you don't have to.
+	for (auto iter = hud_files.begin(); iter != hud_files.end(); iter++)
+		push_unique(resources, *iter);
 }
 
 void add_model_resources(string model_path, set_icase& resources, string traceFrom)

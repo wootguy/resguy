@@ -18,10 +18,12 @@ static const char * g_valid_exts[NUM_VALID_EXTS] = {
 
 extern str_map_set default_wads;
 extern set_icase server_files; // files used by server but not needed by client
+extern set_icase script_files; // files precached by scripts aren't needed in .res files.
 extern set<string, InsensitiveCompare> default_content; // files included with the base game
 extern set<string> parsed_scripts;
 extern int unused_wads;
 extern bool client_files_only;
+extern bool ignore_script_files; // ignore files precached in scripts
 extern bool print_skip;
 extern bool case_sensitive_mode;
 extern bool log_enabled;
