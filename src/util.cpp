@@ -603,9 +603,11 @@ set_icase get_script_dependencies(string fname, set<string>& searchedScripts, se
 					// handle case where the full path is broken up into separate string literals for no reason
 					string tmpVal = normalize_path(val);
 					string sound_val = "sound/" + tmpVal;
+					string sprite_val = "sprites/" + tmpVal;
 					bool valExists = is_default_file(tmpVal) || contentExists(tmpVal, false);
 					bool soundValExists = is_default_file(sound_val) || contentExists(sound_val, false);
-					if (values.size() > 1 && !valExists && !soundValExists)
+					bool spriteValExists = is_default_file(sprite_val) || contentExists(sprite_val, false);
+					if (values.size() > 1 && !valExists && !soundValExists && !spriteValExists)
 					{
 						string concatVal = "";
 						for (int i = 0; i < values.size(); i++)
@@ -618,6 +620,7 @@ set_icase get_script_dependencies(string fname, set<string>& searchedScripts, se
 							sound_val = "sound/" + tmpVal;
 							valExists = is_default_file(tmpVal) || contentExists(tmpVal, false);
 							soundValExists = is_default_file(sound_val) || contentExists(sound_val, false);
+							spriteValExists = is_default_file(sprite_val) || contentExists(sprite_val, false);
 						}
 					}
 
@@ -627,7 +630,10 @@ set_icase get_script_dependencies(string fname, set<string>& searchedScripts, se
 					}
 					else if (ext == "spr")
 					{
-						val = normalize_path(val);
+						// sprites/ prefix is optional for HUD parameters
+						string valpath = spriteValExists ? sprite_val : val;
+
+						val = normalize_path(valpath);
 						trace_missing_file(val, trace, true);
 						push_unique(resources, val);
 					}
