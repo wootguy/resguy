@@ -758,7 +758,7 @@ int write_map_resources(string map)
 	// files that the server files reference, and we don't want to miss those (a soundlist, for example).
 	for (set_icase::iterator iter = all_resources.begin(); iter != all_resources.end();)
 	{
-		if ((client_files_only && isServerFile(*iter)) || isReferencedInScript(*iter))
+		if (client_files_only && (isServerFile(*iter) || isReferencedInScript(*iter)))
 		{
 			if (print_skip)
 				log("Skip optional: " + *iter + "\n");
