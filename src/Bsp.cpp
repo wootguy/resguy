@@ -86,6 +86,17 @@ set_icase Bsp::get_resources()
 				vals.push_back(val);
 			}
 
+			if (key == "m_iszscriptfile") // trigger_script
+			{
+				string script_path = normalize_path("scripts/maps/" + val, true);
+
+				// add extension if needed
+				if (toLowerCase(script_path).find(".as") != script_path.length()-3)
+					script_path += ".as";
+				
+				add_script_resources(script_path, resources, ent_trace);
+			}
+
 			bool isWeaponCustom = cname == "weapon_custom";
 			int iext = val.find_last_of(".");
 			if (!((isWeaponCustom && key == "sprite_directory") || key == "customspritedir"))
@@ -99,17 +110,7 @@ set_icase Bsp::get_resources()
 
 			string ext = toLowerCase(val.substr(iext, val.length() - iext));
 
-			if (key == "m_iszscriptfile") // trigger_script
-			{
-				string script_path = normalize_path("scripts/maps/" + val, true);
-
-				// add extension if needed
-				if (toLowerCase(script_path).find(".as") != script_path.length()-3)
-					script_path += ".as";
-				
-				add_script_resources(script_path, resources, ent_trace);
-			}
-			else if (ext == "mdl") 
+			if (ext == "mdl") 
 			{
 				add_model_resources(normalize_path(val, true), resources, ent_trace);
 			}
