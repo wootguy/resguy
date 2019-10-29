@@ -442,7 +442,7 @@ vector<string> parse_script_arg(string arg, string fname, string err)
 		bool valid_var_name = true;
 		for (int i = 0; i < arg.length(); i++)
 		{
-			if (!isalpha(arg[i]) && !isdigit(arg[i]) && arg[i] != '_')
+			if (!isalpha(arg[i]) && !isdigit(arg[i]) && arg[i] != '_' && arg[i] != ':')
 			{
 				valid_var_name = false;
 				break;
@@ -452,6 +452,14 @@ vector<string> parse_script_arg(string arg, string fname, string err)
 		{
 			log(err + "\t Reason: argument '" + arg + "' does not appear to be a string, variable, or function\n");
 			return ret;
+		}
+		
+		// Strip namespace from the variable name.
+		// This will break if there's a different var with the same name assigned in the same file.
+		// Ideally all scripts should be searched and the namespace should only be removed when
+		// inside the namespace block. Anyway this is good enough for ressya_no_tabi.
+		if (arg.find("::") != string::npos) {
+			arg = arg.substr(arg.find("::")+2);
 		}
 
 		// Parse file for variable assignment
