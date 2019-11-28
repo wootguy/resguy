@@ -657,9 +657,11 @@ int write_map_resources(string map)
 
 	// add server files and optional client files to archive list
 	for (set_icase::iterator iter = server_files.begin(); iter != server_files.end(); iter++)
-		archive_files.insert(*iter);
+		if (!is_default_file(*iter))
+			archive_files.insert(*iter);
 	for (set_icase::iterator iter = script_files.begin(); iter != script_files.end(); iter++)
-		archive_files.insert(*iter);
+		if (!is_default_file(*iter))
+			archive_files.insert(*iter);
 
 	// write optional files
 	if (write_separate_server_files && !just_testing && (server_files.size() || script_files.size()))
@@ -947,20 +949,19 @@ bool archive_output(string archive_name)
 
 	if (make_archive)
 	{
+		set_icase files_to_list; // files that to write to the archive list (will fail if there are duplicates)
 		vector<string> temp_files; // files that are temporarily copied to the current dir
 		set_icase temp_dirs; // directories that are temporarily created in the current dir
-		string list_file = "resguy_7zip_file_list.txt";
-		ofstream fout;
-		fout.open (list_file, ios::out | ios::trunc);
 		for (set<string>::iterator iter = archive_files.begin(); iter != archive_files.end(); iter++)
 		{
 			string tmp_path = *iter;
-			string path;
+			string path = tmp_path;
 			
 			// print missing files that could be ignored when generating the .res file, but not when creating an archive.
-			if (ignore_script_files && isReferencedInScript(*iter) && !contentExists(tmp_path, true, path))
+			if (ignore_script_files && isReferencedInScript(*iter) && !contentExists(tmp_path, true, path)) {
 				print_missing_file_trace(*iter);
-
+				continue;
+			}
 
 			if (path[0] == '.' && path[1] == '.' && path[2] == '/')
 			{
@@ -1010,11 +1011,19 @@ bool archive_output(string archive_name)
 					path = new_path;
 				}
 			}
+
 			#if defined(WIN32) || defined(_WIN32)	
 				std::replace( path.begin(), path.end(), '/', '\\'); // convert to windows slashes
 			#endif
-			fout << path << endl;
+			
+			push_unique(files_to_list, path);
 		}
+
+		string list_file = "resguy_7zip_file_list.txt";
+		ofstream fout;
+		fout.open(list_file, ios::out | ios::trunc);
+		for (set<string>::iterator iter = files_to_list.begin(); iter != files_to_list.end(); iter++)
+			fout << *iter << endl;
 		fout.close();
 
 		// choose a unique archive name
@@ -1036,7 +1045,7 @@ bool archive_output(string archive_name)
 		cout << endl;
 
 		cout << "Cleaning up... ";
-		remove("resguy_7zip_file_list.txt");
+		remove(list_file.c_str());
 		for (int i = 0; i < temp_files.size(); i++)
 			remove(temp_files[i].c_str());
 		for (set_icase::iterator iter = temp_dirs.begin(); iter != temp_dirs.end(); iter++)
