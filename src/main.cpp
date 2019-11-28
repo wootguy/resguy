@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <iomanip>
+#include "script.h"
 
 #if defined(WIN32) || defined(_WIN32)
 #include <conio.h>
@@ -296,6 +297,7 @@ set_icase get_cfg_resources(string map)
 				map_script.erase(std::remove(map_script.begin(), map_script.end(), '\"'), map_script.end());
 				
 				add_script_resources(map_script, cfg_res, cfg);
+				execute_script(map_script);
 			}
 		}
 	}
