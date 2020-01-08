@@ -526,12 +526,20 @@ int write_map_resources(string map)
 		push_unique(server_files, "maps/" + map + "_skl.cfg");
 	}
 	string motd = "maps/" + map + "_motd.txt";
+	string motd_fallback = "maps/" + map + ".txt";
 	if (contentExists(motd, true))
 	{
-		trace_missing_file("maps/" + map + "_motd.txt", "(optional file)", false);
-		push_unique(server_files, "maps/" + map + "_motd.txt");
-		push_unique(all_resources, "maps/" + map + "_motd.txt");
+		trace_missing_file(motd, "(optional file)", false);
+		push_unique(server_files, motd);
+		push_unique(all_resources, motd);
+	} 
+	else if (contentExists(motd_fallback, true))
+	{
+		trace_missing_file(motd_fallback, "(optional file)", false);
+		push_unique(server_files, motd_fallback);
+		push_unique(all_resources, motd_fallback);
 	}
+	
 	string save = "maps/" + map + ".save";
 	if (contentExists(save, true))
 	{
