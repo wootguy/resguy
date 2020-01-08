@@ -98,13 +98,17 @@ set_icase Bsp::get_resources()
 			}
 
 			bool isWeaponCustom = cname == "weapon_custom";
+			bool isSpriteDirectory = (cname.find("weapon_") == 0 && key == "customspritedir") ||
+									 (isWeaponCustom && key == "sprite_directory");
+			bool isSkyName = (cname == "trigger_changesky" && key == "skyname") || 
+							 (cname == "custom_precache" && key.find("sky_") == 0);
+			bool isImpliedFilePath = isSpriteDirectory || isSkyName; // not a literal file path, but still causes things to get precached
+			
 			int iext = val.find_last_of(".");
-			if (!((isWeaponCustom && key == "sprite_directory") || key == "customspritedir"))
-			{
-				// no extension in value - probably not a file path (unless it's a HUD sprite folder name!)
-				if (iext == string::npos || iext == val.length()-1)
-					continue;
-			}
+			bool hasFileExtension = iext == string::npos || iext == val.length() - 1;
+
+			if (!isImpliedFilePath && !hasFileExtension)
+				continue;
 
 			iext++;
 
@@ -134,8 +138,23 @@ set_icase Bsp::get_resources()
 				string res = normalize_path("sound/" + name + "/" + val, true);
 				add_replacement_file_resources(res, resources, ent_trace, false);
 			}
-			else if ((isWeaponCustom && key == "sprite_directory") || 
-					 (cname.find("weapon_") == 0 && key == "customspritedir"))
+			else if (isSkyName && val.length())
+			{
+				string sky = val;
+				trace_missing_file("gfx/env/" + sky + "bk.tga", ent_trace, true);
+				trace_missing_file("gfx/env/" + sky + "dn.tga", ent_trace, true);
+				trace_missing_file("gfx/env/" + sky + "ft.tga", ent_trace, true);
+				trace_missing_file("gfx/env/" + sky + "lf.tga", ent_trace, true);
+				trace_missing_file("gfx/env/" + sky + "rt.tga", ent_trace, true);
+				trace_missing_file("gfx/env/" + sky + "up.tga", ent_trace, true);
+				push_unique(resources, "gfx/env/" + sky + "bk.tga");
+				push_unique(resources, "gfx/env/" + sky + "dn.tga");
+				push_unique(resources, "gfx/env/" + sky + "ft.tga");
+				push_unique(resources, "gfx/env/" + sky + "lf.tga");
+				push_unique(resources, "gfx/env/" + sky + "rt.tga");
+				push_unique(resources, "gfx/env/" + sky + "up.tga");
+			}
+			else if (isSpriteDirectory)
 			{
 				// Note: Code duplicated in util.cpp
 				string wep_name = isWeaponCustom ? ents[i]->keyvalues["weapon_name"] : cname;
