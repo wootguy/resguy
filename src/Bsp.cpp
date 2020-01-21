@@ -105,7 +105,7 @@ set_icase Bsp::get_resources()
 			bool isImpliedFilePath = isSpriteDirectory || isSkyName; // not a literal file path, but still causes things to get precached
 			
 			int iext = val.find_last_of(".");
-			bool hasFileExtension = iext == string::npos || iext == val.length() - 1;
+			bool hasFileExtension = iext != string::npos && iext != val.length() - 1;
 
 			if (!isImpliedFilePath && !hasFileExtension)
 				continue;
