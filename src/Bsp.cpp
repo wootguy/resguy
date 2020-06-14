@@ -68,6 +68,13 @@ set_icase Bsp::get_resources()
 			worldSpawn = ents[i];
 			continue;
 		}
+		
+		// use child class for the keyvalue logic
+		bool isTriggerCreateEntity = cname == "trigger_createentity";
+		if (isTriggerCreateEntity) {
+			cname = ents[i]->keyvalues["m_iszCrtEntChildClass"];
+		}
+
 		for (hashmap::iterator it = ents[i]->keyvalues.begin(); it != ents[i]->keyvalues.end(); ++it)
 		{
 			string key = toLowerCase(it->first);
@@ -84,6 +91,11 @@ set_icase Bsp::get_resources()
 				val.erase(std::remove(val.begin(), val.end(), ';'), val.end());
 				vals.clear();
 				vals.push_back(val);
+			}
+
+			if (isTriggerCreateEntity && key.find("-") == 0) {
+				// strip dash prefix from all key names. Keys with dashes are passed to the child entity
+				key = key.substr(1);
 			}
 
 			if (key == "m_iszscriptfile") // trigger_script
