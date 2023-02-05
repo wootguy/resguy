@@ -274,16 +274,16 @@ set_icase get_cfg_resources(string map)
 			if (line.find("sentence_file") == 0)
 			{
 				string val = trimSpaces(line.substr(line.find("sentence_file")+strlen("sentence_file")));
+				val.erase(std::remove(val.begin(), val.end(), '\"'), val.end());
 				string sentences_file = normalize_path(val);
-				sentences_file.erase(std::remove(sentences_file.begin(), sentences_file.end(), '\"'), sentences_file.end());
 				add_sentence_file_resources(sentences_file, cfg_res, cfg);
 			}
 
 			if (line.find("materials_file") == 0)
 			{
 				string val = trimSpaces(line.substr(line.find("materials_file")+strlen("materials_file")));
+				val.erase(std::remove(val.begin(), val.end(), '\"'), val.end());
 				string materials_file = normalize_path("sound/" + map + "/" + val);
-				materials_file.erase(std::remove(materials_file.begin(), materials_file.end(), '\"'), materials_file.end());
 				trace_missing_file(materials_file, cfg, true);
 				push_unique(cfg_res, materials_file);
 			}
@@ -291,9 +291,9 @@ set_icase get_cfg_resources(string map)
 			if (line.find("map_script") == 0)
 			{
 				string val = trimSpaces(line.substr(line.find("map_script")+strlen("map_script")));
+				val.erase(std::remove(val.begin(), val.end(), '\"'), val.end());
 				bool needsExt = toLowerCase(val).find(".as") != val.length() - 3;
 				string map_script = normalize_path("scripts/maps/" + val + (needsExt ? ".as" : ""));
-				map_script.erase(std::remove(map_script.begin(), map_script.end(), '\"'), map_script.end());
 				
 				add_script_resources(map_script, cfg_res, cfg);
 			}
