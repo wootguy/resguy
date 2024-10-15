@@ -551,6 +551,22 @@ int write_map_resources(string map)
 	push_unique(all_resources, "maps/" + map + ".res");
 	push_unique(server_files, "maps/" + map + ".res");
 
+	string overview_txt = "overviews/" + map + ".txt";
+	string overview_bmp = "overviews/" + map + ".bmp";
+	string overview_tga = "overviews/" + map + ".tga";
+	if (contentExists(overview_txt, true)) {
+		if (contentExists(overview_bmp, true))
+		{
+			push_unique(all_resources, overview_txt);
+			push_unique(all_resources, overview_bmp);
+		}
+		else if (contentExists(overview_tga, true))
+		{
+			push_unique(all_resources, overview_txt);
+			push_unique(all_resources, overview_tga);
+		}
+	}
+
 	// fix bad paths (they shouldn't be legal, but they are)
 	for (set_icase::iterator iter = all_resources.begin(); iter != all_resources.end();)
 	{
