@@ -25,17 +25,17 @@ char _getch()
 	termios old, unbuffered;
 	char result;
 	tcgetattr(0, &old);
-	
+
 	unbuffered = old;
 	unbuffered.c_lflag &= ~ICANON;
 	unbuffered.c_lflag &= ~ECHO;
-	
+
 	tcsetattr(0, TCSANOW, &unbuffered);
-	
+
 	result = getchar();
-	
+
 	tcsetattr(0, TCSANOW, &old);
-	
+
 	return result;
 }
 #endif
@@ -134,7 +134,7 @@ void load_default_content()
 					continue;
 				}
 			}
-			
+
 
 			if (parsingTexNames)
 				default_wads[wad_name].insert(toLowerCase(line));
@@ -200,7 +200,7 @@ void generate_default_content_file()
 	// Write default textures
 	fout << "\n\n[DEFAULT TEXTURES]\n";
 	int num_tex = 0;
-	for (int i = 0; i < wad_files.size(); i++) 
+	for (int i = 0; i < wad_files.size(); i++)
 	{
 		Wad wad(wad_files[i]);
 		wad.readInfo();
@@ -294,7 +294,7 @@ set_icase get_cfg_resources(string map)
 				val.erase(std::remove(val.begin(), val.end(), '\"'), val.end());
 				bool needsExt = toLowerCase(val).find(".as") != val.length() - 3;
 				string map_script = normalize_path("scripts/maps/" + val + (needsExt ? ".as" : ""));
-				
+
 				add_script_resources(map_script, cfg_res, cfg);
 			}
 		}
@@ -352,13 +352,13 @@ set_icase get_detail_resources(string map)
 
 // returns 1 if user wants to choose a different map
 // returns -1 if user wants to quit
-int ask_options() 
+int ask_options()
 {
-	bool opts[] = {just_testing, print_all_references, print_skip, !client_files_only, 
-					   write_separate_server_files, include_missing, write_separate_missing, 
+	bool opts[] = {just_testing, print_all_references, print_skip, !client_files_only,
+					   write_separate_server_files, include_missing, write_separate_missing,
 					   series_mode, log_enabled, !case_sensitive_mode};
 
-	while(true) 
+	while(true)
 	{
 		system(CLEAR_COMMAND);
 
@@ -371,8 +371,8 @@ int ask_options()
 		#endif
 		for (int i = 0; i < maxarg; i++)
 		{
-			int key = i+1 > 9 ? 0 : i+1;		
-			cout << key << ". [" << string(opts[i] ? "X" : " ") << "]  " << arg_defs[i][1] << 
+			int key = i+1 > 9 ? 0 : i+1;
+			cout << key << ". [" << string(opts[i] ? "X" : " ") << "]  " << arg_defs[i][1] <<
 					" (-" << arg_defs[i][0] << ")\n";
 		}
 		cout << "\nPress B to go back or Q to quit\n";
@@ -390,7 +390,7 @@ int ask_options()
 		if (choice == '0') opts[9] = !opts[9];
 		if (choice == 'Q' || choice == 'q') return -1;
 		if (choice == 'B' || choice == 'b') return 1;
-			
+
 		if (choice == '\r' || choice == '\n') break;
 	}
 
@@ -474,7 +474,7 @@ int write_map_resources(string map)
 	}
 
 	// wait until now to choose opts because here we know at least one map exists
-	if (interactive && !chose_opts) 
+	if (interactive && !chose_opts)
 	{
 		int ret = ask_options();
 		if (ret)
@@ -491,7 +491,7 @@ int write_map_resources(string map)
 		string series_map_path = bsp.path + map + ".bsp";
 		series_client_files.insert(series_map_path);
 	}
-	
+
 	string opt_string;
 	opt_string += just_testing ? " -test" : "";
 	opt_string += print_all_references ? " -allrefs" : "";
@@ -532,14 +532,14 @@ int write_map_resources(string map)
 		trace_missing_file(motd, "(optional file)", false);
 		push_unique(server_files, motd);
 		push_unique(all_resources, motd);
-	} 
+	}
 	else if (contentExists(motd_fallback, true))
 	{
 		trace_missing_file(motd_fallback, "(optional file)", false);
 		push_unique(server_files, motd_fallback);
 		push_unique(all_resources, motd_fallback);
 	}
-	
+
 	string save = "maps/" + map + ".save";
 	if (contentExists(save, true))
 	{
@@ -550,6 +550,22 @@ int write_map_resources(string map)
 
 	push_unique(all_resources, "maps/" + map + ".res");
 	push_unique(server_files, "maps/" + map + ".res");
+
+	string overview_txt = "overviews/" + map + ".txt";
+	string overview_bmp = "overviews/" + map + ".bmp";
+	string overview_tga = "overviews/" + map + ".tga";
+	if (contentExists(overview_txt, true)) {
+		if (contentExists(overview_bmp, true))
+		{
+			push_unique(all_resources, overview_txt);
+			push_unique(all_resources, overview_bmp);
+		}
+		else if (contentExists(overview_tga, true))
+		{
+			push_unique(all_resources, overview_txt);
+			push_unique(all_resources, overview_tga);
+		}
+	}
 
 	// fix bad paths (they shouldn't be legal, but they are)
 	for (set_icase::iterator iter = all_resources.begin(); iter != all_resources.end();)
@@ -756,7 +772,7 @@ int write_map_resources(string map)
 		missing_files.push_back(iter);
 		missing++;
 	}
-	if (!include_missing) 
+	if (!include_missing)
 	{
 		for (auto file : missing_files)
 			all_resources.erase(file);
@@ -799,7 +815,7 @@ int write_map_resources(string map)
 		if (!fout.is_open())
 			cout << "Failed to open .res file for writing: " << map_path + map + ".res" << endl;
 	}
-		
+
 
 	fout << resguy_header;
 
@@ -830,7 +846,7 @@ int write_map_resources(string map)
 	{
 		string action = series_mode ? "Found " : "Wrote ";
 		log(action + to_string(numEntries) + " entries. " + to_string(missing) + " files missing. " + to_string(numskips) + " files skipped.\n\n");
-		fout.close(); 
+		fout.close();
 	}
 	else
 	{
@@ -866,8 +882,8 @@ bool archive_output(string archive_name)
 		string suppress_output = " > nul 2>&1";
 		TCHAR x64[MAX_PATH];
 		TCHAR x86[MAX_PATH];
-		SHGetSpecialFolderPath(0, x64, CSIDL_PROGRAM_FILES, FALSE ); 
-		SHGetSpecialFolderPath(0, x86, CSIDL_PROGRAM_FILESX86, FALSE ); 
+		SHGetSpecialFolderPath(0, x64, CSIDL_PROGRAM_FILES, FALSE );
+		SHGetSpecialFolderPath(0, x86, CSIDL_PROGRAM_FILESX86, FALSE );
 		string program_files = x64;
 		string program_files_x86 = x86;
 		string zip64 = "\"" + program_files + "\\7-Zip\\7z.exe\"";
@@ -908,13 +924,13 @@ bool archive_output(string archive_name)
 			cout << "Archive these " << res_files_generated << " maps?\n\n";
 		else
 			cout << "Archive this map?\n\n";
-		cout 
+		cout
 		<< " 1. 7-Zip  Ultra   (best compression)\n"
 		<< " 2. 7-Zip  Normal\n"
 		<< " 3. Zip    Fast\n"
 		<< " 4. Zip    Store   (no compression)\n"
 		<< "\n 0. No\n\n";
-	
+
 		while (true)
 		{
 			char choice = _getch();
@@ -964,7 +980,7 @@ bool archive_output(string archive_name)
 		{
 			string tmp_path = *iter;
 			string path = tmp_path;
-			
+
 			// print missing files that could be ignored when generating the .res file, but not when creating an archive.
 			if (ignore_script_files && isReferencedInScript(*iter) && !contentExists(tmp_path, true, path)) {
 				print_missing_file_trace(*iter);
@@ -978,7 +994,7 @@ bool archive_output(string archive_name)
 				// The list file doesn't allow you to choose where files go in the archive :<
 				string new_path = path.substr(3);
 				new_path = new_path.substr(new_path.find_first_of("/")+1);
-						
+
 				if (new_path.find_first_of("/") != string::npos)
 				{
 					string dir = new_path.substr(0, new_path.find_last_of("/"));
@@ -993,7 +1009,7 @@ bool archive_output(string archive_name)
 							break;
 						tdir = tdir.substr(0, idir);
 					}
-					#if defined(WIN32) || defined(_WIN32)	
+					#if defined(WIN32) || defined(_WIN32)
 						string cmd = "mkdir \"" + dir + "\"" + suppress_output;
 					#else
 						string cmd = "mkdir -p \"" + dir + "\"" + suppress_output;
@@ -1001,7 +1017,7 @@ bool archive_output(string archive_name)
 					system(cmd.c_str());
 				}
 
-				#if defined(WIN32) || defined(_WIN32)	
+				#if defined(WIN32) || defined(_WIN32)
 					string old_path_win = replaceChar(path, '/', '\\');
 					string new_path_win = replaceChar(new_path, '/', '\\');
 					string cmd = "copy /Y \"" + old_path_win + "\" \"" + new_path_win + "\"" + suppress_output;
@@ -1010,7 +1026,7 @@ bool archive_output(string archive_name)
 					string new_path_win = new_path;
 					string cmd = "cp \"" + old_path_win + "\" \"" + new_path_win + "\"" + suppress_output;
 				#endif
-				
+
 				//cout << cmd << endl;
 				cout << "Copying " << old_path_win << "\n";
 				if (system(cmd.c_str()) == 0)
@@ -1020,10 +1036,10 @@ bool archive_output(string archive_name)
 				}
 			}
 
-			#if defined(WIN32) || defined(_WIN32)	
+			#if defined(WIN32) || defined(_WIN32)
 				std::replace( path.begin(), path.end(), '/', '\\'); // convert to windows slashes
 			#endif
-			
+
 			push_unique(files_to_list, path);
 		}
 
@@ -1113,31 +1129,31 @@ int main(int argc, char* argv[])
 			return 0;
 		}
 		if (map == "-help" || map == "-h")
-		{	
+		{
 			cout << version_string << "\n\nUsage: resguy [filename] <options>\n\n";
 			cout << "[filename] can be the name of a map (\"stadium3\" or \"stadium3.bsp\"), or a search string (\"stadium*\").\n";
 			cout << "\n<options>:\n";
-			
+
 			for (int i = 0; i < NUM_ARG_DEFS; i++)
 				cout << "  -" << left << setw(12) << arg_defs[i][0] << arg_defs[i][1] << endl;
-			
-			cout << "  -" << left << setw(12) << "7z[0-9]" << 
+
+			cout << "  -" << left << setw(12) << "7z[0-9]" <<
 				"Create a 7-Zip archive from the selected maps\n" << "   " << setw(12) << "" <<
 				"The compression level is optional (default = 9)" << endl;
-			cout << "  -" << left << setw(12) << "zip[0-9]" << 
+			cout << "  -" << left << setw(12) << "zip[0-9]" <<
 				"Create a Zip archive from the selected maps\n" << "   " << setw(12) << "" <<
 				"The compression level is optional (default = 1)" << endl;
-				
+
 			cout << "\nSpecial usage:\n";
 			cout << "  resguy -" << left << setw(12) << "gend" << "Generate resguy_default_content.txt\n          " << setw(12) << "" <<
 				"Place resguy in \"Sven Co-op/svencoop/\" beforehand" << endl;
 			cout << "  resguy -" << left << setw(12) << "version" << "Show program version" << endl;
-			
+
 			return 0;
 		}
 	}
-	
-	if (argc > 2) 
+
+	if (argc > 2)
 	{
 		for (int i = 2; i < argc; i++)
 		{
@@ -1169,9 +1185,9 @@ int main(int argc, char* argv[])
 		}
 		ignore_script_files = client_files_only && !write_separate_server_files;
 	}
-	
+
 	interactive = map.length() == 0;
-	ask_for_map:	
+	ask_for_map:
 	if (interactive)
 	{
 		system(CLEAR_COMMAND);
@@ -1212,24 +1228,24 @@ int main(int argc, char* argv[])
 		insert_unique(getDirFiles("../valve/maps/", "bsp", map), files);
 		sort( files.begin(), files.end(), stringCompare );
 
-		if (!files.size()) 
+		if (!files.size())
 		{
 			cout << "No maps matching the search string were found.\n";
 			ret = 2;
 			map_not_found = true;
 		}
-		else 
+		else
 		{
 			if (interactive)
 			{
 				target_maps = "Generating .res files for:\n  ";
 				const int max_target = 4;
-				for (int i = 0; i < files.size(); i++) 
+				for (int i = 0; i < files.size(); i++)
 				{
 					if (i > 0)
 						target_maps += ", ";
 					target_maps += bsp_name(files[i]);
-					if (i == max_target-1 && (files.size() - max_target > 1)) 
+					if (i == max_target-1 && (files.size() - max_target > 1))
 					{
 						target_maps += string(" (") + to_string(files.size() - max_target) + " more...)";
 						break;
@@ -1290,10 +1306,10 @@ int main(int argc, char* argv[])
 		if (ret)
 			ret = 1;
 	}
-	
+
 	if (series_mode && !just_testing && res_files_generated > 0)
 	{
-		cout << "Writing series .res files for " << files.size() << " maps (" << 
+		cout << "Writing series .res files for " << files.size() << " maps (" <<
 				series_client_files.size() << " entries)\n\n";
 		for (int i = 0; i < files.size(); i++)
 		{
@@ -1301,7 +1317,7 @@ int main(int argc, char* argv[])
 			Bsp bsp(f);
 			if (!bsp.valid)
 				continue;
-			
+
 			ofstream fout;
 			fout.open(bsp.path + f + ".res", ios::out | ios::trunc);
 			fout << resguy_header;
